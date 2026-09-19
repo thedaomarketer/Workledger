@@ -1,0 +1,97 @@
+# Database
+
+PostgreSQL via Supabase. All migrations live in `supabase/migrations/`,
+numbered sequentially, and were applied directly to the live project
+(`WorkLedger`, ref `hdeshlblsdsplpyayanz`) via the Supabase MCP tools during
+this build.
+
+## Tables
+
+| Table | Purpose | Ownership column |
+|---|---|---|
+| `profiles` | Public profile per `auth.users` row | `id` (= `auth.users.id`) |
+| `jobs` | Employers/gigs a user tracks time against | `user_id` |
+| `shifts` | Scheduled and/or worked periods | `user_id` |
+| `breaks` | Paid/unpaid breaks within a shift | `user_id` |
+| `journal_entries` | Work Evidence Timeline entries | `user_id` |
+| `expenses` | Work-related spending | `user_id` |
+| `mileage_entries` | Work-related trips | `user_id` |
+| `schedule_entries` | Calendar items independent of shifts | `user_id` |
+| `attachments` | Metadata for files in the private `attachments` bucket | `user_id` |
+| `audit_logs` | Append-only change log | `user_id` |
+| `user_settings` | Per-user preferences | `user_id` |
+| `ai_conversations` / `ai_messages` | AI assistant chat history (schema only; feature not yet built) | `user_id` |
+
+Every table has `alter table ... enable row level security` plus four
+policies (`select`/`insert`/`update`/`delete`) scoped to
+`(select auth.uid()) = user_id` (or `= id` for `profiles`). `audit_logs`
+only has a `select` policy — inserts happen exclusively through the
+service-role client from server-side code, never from an authenticated
+user's own session.
+
+## Key constraints
+
+- `shifts_one_active_per_user_idx`: a **partial unique index** on
+  `shifts (user_id) where status = 'active'`. This is the real guarantee
+  against duplicate clock-ins — the client-side check in
+  `lib/actions/shifts.ts#clockInAction` is a courtesy for a better error
+  message, not the source of truth.
+- `breaks_one_open_per_shift_idx`: same pattern, one open break per shift.
+- `shifts_actual_order_check` / `shifts_scheduled_order_check` /
+  `breaks_order_check` / `schedule_entries_order_check`: end must be after
+  start wherever both are set.
+- `jobs_dates_check`: `end_date >= start_date` when both are set.
+
+## New-user bootstrap
+
+`handle_new_user()` (a `security definer` trigger function on
+`auth.users after insert`) creates a `profiles` row and a default
+`user_settings` row for every new signup. `EXECUTE` on this function is
+revoked from `anon`/`authenticated`/`public` — it must only ever run as the
+trigger, never be callable directly as an RPC (this was flagged by the
+Supabase security linter and fixed; see migration `00000000000015`).
+
+## Storage
+
+A private `attachments` bucket (`public = false`). Objects are expected
+under `${auth.uid()}/...`; storage policies restrict
+select/insert/update/delete to the owning user via
+`(storage.foldername(name))[1] = auth.uid()::text`. There's no upload UI
+yet (see `docs/current-state.md`), but the bucket and policies are ready.
+
+## Regenerating this from scratch
+
+```
+npx supabase link --project-ref <id>
+npx supabase db push
+```
+
+Or apply each file in `supabase/migrations/` in order via the Supabase SQL
+editor / MCP `apply_migration` tool.
+
+## Verifying RLS and constraints
+
+This was done directly against the live database via SQL (not through the
+app, since the build sandbox couldn't reach the project's API — see
+`docs/current-state.md`):
+
+1. Inserted a fake `auth.users` row directly → confirmed `profiles` and
+   `user_settings` rows were auto-created by the trigger.
+2. Created a job and an active shift for that user → attempted a second
+   `insert ... status = 'active'` for the same user → got
+   `duplicate key value violates unique constraint "shifts_one_active_per_user_idx"`.
+3. Added an unpaid break, clocked out → computed paid minutes matched
+   `lib/calculations/duration.ts`'s logic exactly (gross minutes minus
+   unpaid break minutes).
+4. Created a second fake user, set `role = authenticated` and
+   `request.jwt.claims` to that user's `sub` in a SQL session, and
+   confirmed `select count(*) from jobs/shifts/breaks` returned `0` for
+   the first user's data while their own profile was still visible — then
+   repeated as the first user to confirm they could see their own 1 row in
+   each table.
+5. Ran `get_advisors` (security and performance) after every schema
+   change; fixed the `function_search_path_mutable`,
+   `anon/authenticated_security_definer_function_executable`,
+   `auth_rls_initplan`, and `unindexed_foreign_keys` findings it raised.
+   The only remaining findings are `unused_index` (expected — the database
+   has no query history yet).

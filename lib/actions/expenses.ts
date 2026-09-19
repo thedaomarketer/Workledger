@@ -1,0 +1,85 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+
+import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit/log";
+import { expenseSchema } from "@/lib/validation/expenses";
+import type { ExpenseCategory } from "@/lib/supabase/database.types";
+
+export interface ActionResult {
+  error?: string;
+}
+
+export async function createExpenseAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = expenseSchema.safeParse({
+    jobId: formData.get("jobId"),
+    amount: formData.get("amount"),
+    category: formData.get("category"),
+    description: formData.get("description"),
+    expenseDate: formData.get("expenseDate"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid expense." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { data: profile } = await supabase.from("profiles").select("currency").eq("id", user.id).maybeSingle();
+
+  const { data, error } = await supabase
+    .from("expenses")
+    .insert({
+      user_id: user.id,
+      job_id: parsed.data.jobId || null,
+      amount: parsed.data.amount,
+      currency: profile?.currency ?? "USD",
+      category: parsed.data.category as ExpenseCategory,
+      description: parsed.data.description || null,
+      expense_date: parsed.data.expenseDate,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    return { error: "We couldn't save this expense. Please try again." };
+  }
+
+  await logAudit({ userId: user.id, entityType: "expense", entityId: data.id, action: "created" });
+
+  revalidatePath("/expenses");
+  revalidatePath("/reports");
+  return {};
+}
+
+export async function deleteExpenseAction(expenseId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { data: before } = await supabase
+    .from("expenses")
+    .select("*")
+    .eq("id", expenseId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const { error } = await supabase.from("expenses").delete().eq("id", expenseId).eq("user_id", user.id);
+  if (error) return { error: "We couldn't delete this expense." };
+
+  await logAudit({ userId: user.id, entityType: "expense", entityId: expenseId, action: "deleted", oldData: before });
+
+  revalidatePath("/expenses");
+  revalidatePath("/reports");
+  return {};
+}

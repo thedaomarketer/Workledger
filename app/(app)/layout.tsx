@@ -1,0 +1,36 @@
+import { redirect } from "next/navigation";
+
+import { createClient } from "@/lib/supabase/server";
+import { SidebarNav } from "@/components/app-shell/sidebar-nav";
+import { MobileNav } from "@/components/app-shell/mobile-nav";
+import { Header } from "@/components/app-shell/header";
+
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  return (
+    <div className="flex min-h-svh">
+      <SidebarNav />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header fullName={profile?.full_name ?? null} email={profile?.email ?? user.email ?? null} />
+        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+          <div className="mx-auto w-full max-w-6xl p-4 md:p-6">{children}</div>
+        </main>
+      </div>
+      <MobileNav />
+    </div>
+  );
+}
