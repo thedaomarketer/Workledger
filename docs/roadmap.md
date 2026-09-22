@@ -22,10 +22,20 @@ Status as of this build. See `docs/current-state.md` for the detailed
   baked into the dashboard and reports.
 - **Phase 5 — Reports** (partial): hours/earnings/overtime/expense
   reports with job and date-range filters, CSV export. No PDF export.
+- **Phase 6 — AI**: implemented. Chat assistant at `/assistant`, backed by
+  Claude with 9 read-only tools scoped to the user's own data. See
+  `docs/ai.md`.
+- **Deployed**: live on Vercel at https://workledger-three.vercel.app.
 
 ## Not started
 
-- **Phase 6 — AI**: design documented in `docs/ai.md`; no implementation.
+- **Tax withholding breakdown**: estimate what's withheld from pay based
+  on the user's country (Canada or US) and province/state (+ city where
+  applicable), and surface it alongside upcoming payday. Not yet designed
+  in a doc -- next up.
+- **Billing/subscriptions**: Stripe integration for the Free/Pro/Business
+  plans described in the original spec, using the already-connected
+  "Di Juicy Oasis" Stripe account. Not started.
 - **Phase 7 — Mobile/PWA**: responsive mobile UI exists (bottom nav,
   card-based layouts); no offline support, no push notifications, no PWA
   manifest/service worker.
@@ -51,11 +61,13 @@ for polish):
 4. **P1** — Attachment upload UI (receipts on expenses, files on journal
    entries), wired to the existing private bucket + signed URLs.
 5. **P2** — PDF export for reports.
-6. **P3** — AI Assistant, per `docs/ai.md`.
-7. **P3** — Notifications (shift/clock-in/clock-out/break reminders,
+6. **P2** — Tax withholding breakdown (Canada + US), tied to upcoming
+   payday awareness.
+7. **P2** — Billing/subscriptions (Stripe).
+8. **P3** — Notifications (shift/clock-in/clock-out/break reminders,
    weekly summary) — `user_settings.notifications_enabled` already exists
    as the preference toggle.
-8. **P3** — PWA / offline support for the clock-in flow specifically (the
+9. **P3** — PWA / offline support for the clock-in flow specifically (the
    spec calls out that a clock-in must never be silently lost to a network
    drop).
-9. **P4** — Monetization, then team/business features.
+10. **P4** — Team/business features.

@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-09-19 (initial build).
+Last updated: 2026-09-22 (AI assistant added).
 
 This document describes what actually exists in the codebase today, as
 opposed to what the product spec eventually calls for. See `docs/roadmap.md`
@@ -46,19 +46,23 @@ for what's next.
   entries.
 - **Audit log**: every mutation from a server action writes an
   `audit_logs` row via the service-role client.
+- **AI Assistant** (`/assistant`): a real chat UI backed by the Anthropic
+  API (`claude-opus-5`), with 9 read-only tools (`lib/ai/tools.ts`) scoped
+  to the signed-in user's own data -- hours, overtime, earnings, shifts,
+  expenses, mileage, schedule, journal entries, and a combined report.
+  Conversation history persists to `ai_conversations`/`ai_messages`. See
+  `docs/ai.md` for the full design. Requires `ANTHROPIC_API_KEY` to be set;
+  without it, the assistant shows an error instead of crashing.
 
 Verified directly against the live Supabase project (`WorkLedger`,
 `hdeshlblsdsplpyayanz`) via SQL: the new-user trigger creates a profile and
 default settings row, the one-active-shift constraint rejects a duplicate
 clock-in, and RLS correctly hides one user's jobs/shifts/breaks from another
 user while still exposing their own. `npm run lint`, `npm run typecheck`,
-`npm test` (36/36), and `npm run build` all pass.
+`npm test` (44/44), and `npm run build` all pass.
 
 ## What's stubbed or missing
 
-- **AI Assistant** (`/assistant`): placeholder page only. No tool-calling
-  layer, no `ai_conversations`/`ai_messages` writes yet. The tables and
-  `docs/ai.md`'s design exist; the implementation doesn't.
 - **Attachments/receipts**: the `attachments` table and private storage
   bucket + RLS policies exist, but there's no upload UI yet. Expenses have
   a `receipt_url` column that's currently unused.
@@ -78,7 +82,26 @@ user while still exposing their own. `npm run lint`, `npm run typecheck`,
   Run `npm run dev` with `.env.local` filled in from a network that can
   reach `*.supabase.co` to do a real browser pass.
 - **Monetization, teams/business features**: not started (Phase 8/9 in the
-  original spec).
+  original spec). Coming next: billing/subscriptions (Stripe) and a
+  tax-withholding breakdown feature (Canada + US, user-selected country).
+- **AI Assistant**: non-streaming (shows a "Thinking..." indicator, not
+  token-by-token output), no conversation switcher (only the most recent
+  conversation is resumed), and no rate limiting on the chat endpoint yet.
+
+## Live deployment
+
+- Production: **https://workledger-three.vercel.app**, deployed from the
+  `Personal-Main` branch via the `workledger` Vercel project (auto-linked
+  to the same Supabase project through Vercel's Supabase integration,
+  which also provisioned the real `SUPABASE_SERVICE_ROLE_KEY` there --
+  account deletion and audit logging work in production even though
+  `.env.local` only has a placeholder for that key locally).
+- Vercel's SSO/team-only deployment protection was disabled so the app is
+  publicly reachable; `NEXT_PUBLIC_SITE_URL` is set to the production URL
+  for correct password-reset/email-confirmation links.
+- `ANTHROPIC_API_KEY` is **not** yet set on Vercel -- add it in the
+  project's environment variables for the AI Assistant to work in
+  production (see `docs/ai.md`).
 
 ## Live Supabase project
 

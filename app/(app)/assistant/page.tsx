@@ -1,21 +1,42 @@
-import { Sparkles } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { requireUserContext } from "@/lib/data/context";
+import { AssistantChat, type ChatMessage } from "@/components/assistant/chat";
 
-import { Card, CardContent } from "@/components/ui/card";
+export default async function AssistantPage() {
+  const ctx = await requireUserContext();
+  if (!ctx) return null;
 
-export default function AssistantPage() {
+  const supabase = await createClient();
+
+  const { data: conversation } = await supabase
+    .from("ai_conversations")
+    .select("id")
+    .eq("user_id", ctx.userId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let initialMessages: ChatMessage[] = [];
+  if (conversation) {
+    const { data: rows } = await supabase
+      .from("ai_messages")
+      .select("role, content")
+      .eq("conversation_id", conversation.id)
+      .order("created_at", { ascending: true })
+      .limit(40);
+
+    initialMessages = (rows ?? [])
+      .filter((r): r is { role: "user" | "assistant"; content: string } => r.role === "user" || r.role === "assistant")
+      .map((r) => ({ role: r.role, content: r.content }));
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <h1 className="text-2xl font-semibold tracking-tight">AI Assistant</h1>
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-          <Sparkles className="size-8 text-muted-foreground" />
-          <p className="max-w-sm text-sm text-muted-foreground">
-            The AI Assistant is coming in a future release. It will answer questions about your hours,
-            earnings, and activity by querying your WorkLedger records through controlled tools — never by
-            inventing numbers. See <code>docs/ai.md</code> for the planned design.
-          </p>
-        </CardContent>
-      </Card>
+      <AssistantChat
+        initialConversationId={conversation?.id ?? null}
+        initialMessages={initialMessages}
+      />
     </div>
   );
 }
