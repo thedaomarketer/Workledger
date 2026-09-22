@@ -23,6 +23,8 @@ function parseJobForm(formData: FormData) {
     endDate: formData.get("endDate"),
     color: formData.get("color") || "#2563eb",
     notes: formData.get("notes"),
+    payFrequency: formData.get("payFrequency") || undefined,
+    payAnchorDate: formData.get("payAnchorDate"),
   });
 }
 
@@ -57,6 +59,8 @@ export async function createJobAction(
       end_date: parsed.data.endDate || null,
       color: parsed.data.color,
       notes: parsed.data.notes || null,
+      pay_frequency: parsed.data.payFrequency || null,
+      pay_anchor_date: parsed.data.payAnchorDate || null,
     })
     .select("id")
     .single();
@@ -116,6 +120,8 @@ export async function updateJobAction(
       end_date: parsed.data.endDate || null,
       color: parsed.data.color,
       notes: parsed.data.notes || null,
+      pay_frequency: parsed.data.payFrequency || null,
+      pay_anchor_date: parsed.data.payAnchorDate || null,
     })
     .eq("id", jobId)
     .eq("user_id", user.id);

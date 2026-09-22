@@ -17,3 +17,14 @@ export const preferencesSchema = z.object({
   overtimeThresholdHours: z.coerce.number().min(0).max(168),
   notificationsEnabled: z.coerce.boolean(),
 });
+
+export const taxSettingsSchema = z
+  .object({
+    taxCountry: z.enum(["CA", "US"]).optional().or(z.literal("")),
+    taxRegion: z.string().trim().max(10).optional().or(z.literal("")),
+    taxCity: z.string().trim().max(30).optional().or(z.literal("")),
+  })
+  .refine((data) => !data.taxCountry || !!data.taxRegion, {
+    message: "Choose a province or state.",
+    path: ["taxRegion"],
+  });

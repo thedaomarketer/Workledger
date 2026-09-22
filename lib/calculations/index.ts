@@ -5,3 +5,4 @@ export * from "./overtime";
 export * from "./workweek";
 export * from "./summary";
 export * from "./period";
+export * from "./payday";

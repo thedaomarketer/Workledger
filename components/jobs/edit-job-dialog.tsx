@@ -60,6 +60,8 @@ export function EditJobDialog({ job }: { job: Job }) {
                 endDate: job.end_date,
                 color: job.color,
                 notes: job.notes,
+                payFrequency: job.pay_frequency,
+                payAnchorDate: job.pay_anchor_date,
               }}
             />
           </div>

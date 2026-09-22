@@ -79,6 +79,8 @@ export interface Database {
           is_active: boolean;
           color: string;
           notes: string | null;
+          pay_frequency: "weekly" | "biweekly" | "semi_monthly" | "monthly" | null;
+          pay_anchor_date: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -270,6 +272,9 @@ export interface Database {
           overtime_threshold_minutes: number;
           notifications_enabled: boolean;
           dark_mode: boolean;
+          tax_country: "CA" | "US" | null;
+          tax_region: string | null;
+          tax_city: string | null;
           created_at: string;
           updated_at: string;
         };

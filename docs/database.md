@@ -20,7 +20,7 @@ this build.
 | `attachments` | Metadata for files in the private `attachments` bucket | `user_id` |
 | `audit_logs` | Append-only change log | `user_id` |
 | `user_settings` | Per-user preferences | `user_id` |
-| `ai_conversations` / `ai_messages` | AI assistant chat history (schema only; feature not yet built) | `user_id` |
+| `ai_conversations` / `ai_messages` | AI assistant chat history | `user_id` |
 
 Every table has `alter table ... enable row level security` plus four
 policies (`select`/`insert`/`update`/`delete`) scoped to

@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit/log";
-import { preferencesSchema, profileSchema } from "@/lib/validation/settings";
+import { preferencesSchema, profileSchema, taxSettingsSchema } from "@/lib/validation/settings";
 
 export interface ActionResult {
   error?: string;
@@ -98,6 +98,44 @@ export async function updatePreferencesAction(
 
   revalidatePath("/settings");
   revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function updateTaxSettingsAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = taxSettingsSchema.safeParse({
+    taxCountry: formData.get("taxCountry"),
+    taxRegion: formData.get("taxRegion"),
+    taxCity: formData.get("taxCity"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid tax settings." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { error } = await supabase
+    .from("user_settings")
+    .update({
+      tax_country: parsed.data.taxCountry || null,
+      tax_region: parsed.data.taxRegion || null,
+      tax_city: parsed.data.taxCity || null,
+    })
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { error: "We couldn't save your tax settings. Please try again." };
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/taxes");
   return { success: true };
 }
 

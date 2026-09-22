@@ -12,6 +12,8 @@ export const jobSchema = z.object({
   endDate: z.string().optional().or(z.literal("")),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Pick a valid color."),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
+  payFrequency: z.enum(["weekly", "biweekly", "semi_monthly", "monthly"]).optional().or(z.literal("")),
+  payAnchorDate: z.string().optional().or(z.literal("")),
 });
 
 export type JobInput = z.infer<typeof jobSchema>;

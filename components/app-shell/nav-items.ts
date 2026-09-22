@@ -9,6 +9,7 @@ import {
   Receipt,
   Sparkles,
   BarChart3,
+  Landmark,
   Settings,
 } from "lucide-react";
 
@@ -28,6 +29,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/mileage", label: "Mileage", icon: Car },
   { href: "/reports", label: "Reports", icon: BarChart3, mobile: true },
+  { href: "/taxes", label: "Pay & Taxes", icon: Landmark },
   { href: "/assistant", label: "AI Assistant", icon: Sparkles },
 ];
 

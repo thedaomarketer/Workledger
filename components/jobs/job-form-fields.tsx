@@ -5,6 +5,20 @@ import { useId } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const PAY_FREQUENCY_OPTIONS = [
+  { value: "weekly", label: "Weekly" },
+  { value: "biweekly", label: "Biweekly" },
+  { value: "semi_monthly", label: "Semi-monthly" },
+  { value: "monthly", label: "Monthly" },
+];
 
 const PRESET_COLORS = [
   "#2563eb",
@@ -32,6 +46,8 @@ export function JobFormFields({
     endDate?: string | null;
     color?: string;
     notes?: string | null;
+    payFrequency?: string | null;
+    payAnchorDate?: string | null;
   };
 }) {
   const id = useId();
@@ -122,6 +138,38 @@ export function JobFormFields({
               />
             </label>
           ))}
+        </div>
+      </div>
+      <div className="space-y-2 rounded-md border p-3">
+        <p className="text-sm font-medium">Pay schedule (optional)</p>
+        <p className="text-xs text-muted-foreground">
+          Powers the payday countdown and tax withholding estimate on the Pay &amp; Taxes page.
+        </p>
+        <div className="grid gap-4 pt-1 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor={`${id}-payFrequency`}>Pay frequency</Label>
+            <Select name="payFrequency" defaultValue={dv.payFrequency ?? undefined}>
+              <SelectTrigger className="w-full" id={`${id}-payFrequency`}>
+                <SelectValue placeholder="Not set" />
+              </SelectTrigger>
+              <SelectContent>
+                {PAY_FREQUENCY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${id}-payAnchorDate`}>A known pay date</Label>
+            <Input
+              id={`${id}-payAnchorDate`}
+              name="payAnchorDate"
+              type="date"
+              defaultValue={dv.payAnchorDate ?? ""}
+            />
+          </div>
         </div>
       </div>
       <div className="space-y-2">

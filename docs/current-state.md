@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-09-22 (AI assistant added).
+Last updated: 2026-09-22 (pay & taxes added).
 
 This document describes what actually exists in the codebase today, as
 opposed to what the product spec eventually calls for. See `docs/roadmap.md`
@@ -12,12 +12,15 @@ for what's next.
   request + update, email confirmation callback (`app/auth/confirm`). Session
   refresh runs on every request via `proxy.ts` (Next.js 16's replacement for
   `middleware.ts`).
-- **Database**: full schema applied to a live Supabase project (16
+- **Database**: full schema applied to a live Supabase project (17
   migrations in `supabase/migrations/`) — `profiles`, `jobs`, `shifts`,
   `breaks`, `journal_entries`, `expenses`, `mileage_entries`,
   `schedule_entries`, `attachments`, `audit_logs`, `user_settings`,
   `ai_conversations`, `ai_messages`, plus a private `attachments` storage
   bucket. RLS is enabled and verified on every table (see `docs/security.md`).
+  `jobs` also carries an optional `pay_frequency`/`pay_anchor_date`, and
+  `user_settings` an optional `tax_country`/`tax_region`/`tax_city`, for the
+  Pay & Taxes feature.
 - **Calculation engine** (`lib/calculations/`): shift duration, paid/unpaid
   break handling, overtime split, per-workweek/day/month bucketing in a
   user's timezone, integer-cents money math. 36 unit tests cover the edge
@@ -53,13 +56,19 @@ for what's next.
   Conversation history persists to `ai_conversations`/`ai_messages`. See
   `docs/ai.md` for the full design. Requires `ANTHROPIC_API_KEY` to be set;
   without it, the assistant shows an error instead of crashing.
+- **Pay & Taxes** (`/taxes`): upcoming-payday projection per job
+  (`lib/calculations/payday.ts`, DST-safe) and an estimated income tax +
+  payroll deduction breakdown (`lib/calculations/tax/`) for a user-selected
+  country/province-or-state/city, seeded from the user's own recorded
+  earnings and editable. Single-filer, standard-deduction, 2024-bracket
+  estimate, clearly labeled as such throughout the UI. See `docs/tax.md`.
 
 Verified directly against the live Supabase project (`WorkLedger`,
 `hdeshlblsdsplpyayanz`) via SQL: the new-user trigger creates a profile and
 default settings row, the one-active-shift constraint rejects a duplicate
 clock-in, and RLS correctly hides one user's jobs/shifts/breaks from another
 user while still exposing their own. `npm run lint`, `npm run typecheck`,
-`npm test` (44/44), and `npm run build` all pass.
+`npm test` (68/68), and `npm run build` all pass.
 
 ## What's stubbed or missing
 
@@ -82,11 +91,16 @@ user while still exposing their own. `npm run lint`, `npm run typecheck`,
   Run `npm run dev` with `.env.local` filled in from a network that can
   reach `*.supabase.co` to do a real browser pass.
 - **Monetization, teams/business features**: not started (Phase 8/9 in the
-  original spec). Coming next: billing/subscriptions (Stripe) and a
-  tax-withholding breakdown feature (Canada + US, user-selected country).
+  original spec). Coming next: billing/subscriptions (Stripe), reusing the
+  existing connected Stripe account.
 - **AI Assistant**: non-streaming (shows a "Thinking..." indicator, not
   token-by-token output), no conversation switcher (only the most recent
   conversation is resumed), and no rate limiting on the chat endpoint yet.
+- **Pay & Taxes**: tax bracket data (`lib/calculations/tax/`) is a
+  hand-written, point-in-time snapshot for the 2024 tax year, not pulled
+  from a live feed -- see the caveats in `docs/tax.md`. No pay-schedule
+  reminders/notifications yet (payday is shown on `/taxes` only, not pushed
+  to the user).
 
 ## Live deployment
 
