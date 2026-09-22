@@ -9,8 +9,14 @@ This is an estimate, not a payroll result. It exists to give workers a rough sen
 ## Payday awareness
 
 - `jobs.pay_frequency` (`weekly` | `biweekly` | `semi_monthly` | `monthly`) and `jobs.pay_anchor_date` (a known past or upcoming pay date) are optional, per-job fields set from the job form (`components/jobs/job-form-fields.tsx`).
-- `lib/calculations/payday.ts#getNextPayday` projects the next pay date forward from the anchor, operating on absolute instants (never naive date-string math) so it stays correct across DST transitions -- see `tests/unit/calculations/payday.test.ts`.
-- `lib/data/tax.ts#getUpcomingPaydays` computes the next payday for every active job that has both fields set and returns them sorted soonest-first; `components/taxes/payday-card.tsx` renders the list. A job without a pay schedule configured simply doesn't appear.
+- `lib/calculations/payday.ts#getNextPayday` projects the next pay date forward from the anchor, operating on absolute instants (never naive date-string math) so it stays correct across DST transitions -- see `tests/unit/calculations/payday.test.ts`. A monthly anchor on the 29th–31st clamps to the last day of a shorter month (e.g. Feb 29) without permanently drifting off the anchor day once the target month is long enough again -- `monthlyPaydayForCycle` always measures from the original anchor day, never from a previously clamped date.
+- `lib/data/tax.ts#getUpcomingPaydays` computes the next payday for every active job that has both fields set and returns them sorted soonest-first; `components/taxes/payday-card.tsx` renders the list, and the soonest one also appears as a card on the dashboard (`components/dashboard/next-payday-card.tsx`). A job without a pay schedule configured simply doesn't appear.
+- `lib/calculations/payday.ts#getPayPeriod` returns the `{ start, end }` of the pay period ending at the next payday -- the period "you're currently being paid for" -- with the same anchor-clamping logic applied to its monthly case.
+
+## Pay period statement
+
+- `lib/data/tax.ts#getPayPeriodStatements` builds a pay-stub-style statement for the current pay period of every job with a schedule configured: hours worked and gross pay come from the same `summarizeShiftsByJob`/`sumJobSummaries` calculation layer as the Dashboard and Reports, over the exact `getPayPeriod` date range -- never a fabricated or rounded figure.
+- `lib/calculations/tax/estimate.ts#estimateTaxForPeriod(periodGrossCents, periodsPerYear, jurisdiction)` estimates that period's deductions the way real payroll withholding tables work: annualize this period's gross pay, run it through `estimateTax`, then divide the resulting annual deductions back down by the period count. It's only computed once a tax jurisdiction is set; `components/taxes/pay-statement-card.tsx` shows gross-only otherwise.
 
 ## Tax withholding estimate
 

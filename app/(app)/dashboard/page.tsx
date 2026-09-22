@@ -6,6 +6,7 @@ import { ClockInCard } from "@/components/time/clock-in-card";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { UpcomingShifts } from "@/components/dashboard/upcoming-shifts";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
+import { NextPaydayCard } from "@/components/dashboard/next-payday-card";
 
 export default async function DashboardPage() {
   const data = await getDashboardData();
@@ -48,6 +49,8 @@ export default async function DashboardPage() {
       ) : (
         <ClockInCard jobs={data.jobs} />
       )}
+
+      {data.nextPayday && <NextPaydayCard payday={data.nextPayday} />}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <MetricCard label="Today" value={fmtHrs(data.todayTotals.paidMinutes)} />

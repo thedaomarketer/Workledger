@@ -36,9 +36,34 @@ function addDays(localMidnightInstant: Date, days: number, timezone: string): Da
   return fromZonedTime(new Date(Date.UTC(year, month, day + days, 0, 0, 0, 0)), timezone);
 }
 
-function addMonths(localMidnightInstant: Date, months: number, timezone: string): Date {
-  const { year, month, day } = calendarParts(localMidnightInstant, timezone);
-  return fromZonedTime(new Date(Date.UTC(year, month + months, day, 0, 0, 0, 0)), timezone);
+/**
+ * The `cycles`-th monthly payday after `anchor`, clamped to the last day of
+ * a shorter target month (e.g. an anchor on the 31st pays on Feb 29 in a
+ * leap year) -- and always measured from the *original* anchor day-of-month,
+ * never from a previously clamped date, so a short month doesn't
+ * permanently drag every later payday off the anchor day.
+ */
+function monthlyPaydayForCycle(anchor: Date, timezone: string, cycles: number): Date {
+  const { year, month, day } = calendarParts(anchor, timezone);
+  const daysInTargetMonth = new Date(Date.UTC(year, month + cycles + 1, 0)).getUTCDate();
+  const clampedDay = Math.min(day, daysInTargetMonth);
+  return fromZonedTime(new Date(Date.UTC(year, month + cycles, clampedDay, 0, 0, 0, 0)), timezone);
+}
+
+/** The smallest cycle count (>= 0) whose monthly payday falls at or after `fromDay`. */
+function monthlyCyclesUntil(anchor: Date, timezone: string, fromDay: Date): number {
+  let cycles = 0;
+  while (monthlyPaydayForCycle(anchor, timezone, cycles) < fromDay) {
+    cycles += 1;
+  }
+  return cycles;
+}
+
+/** The two days-of-month a semi-monthly schedule pays on, ascending. */
+function semiMonthlyPaydayDays(anchor: Date, timezone: string): [number, number] {
+  const anchorDayOfMonth = calendarParts(anchor, timezone).day;
+  const secondDayOfMonth = ((anchorDayOfMonth + 14 - 1) % 28) + 1;
+  return [anchorDayOfMonth, secondDayOfMonth].sort((a, b) => a - b) as [number, number];
 }
 
 /**
@@ -58,9 +83,7 @@ export function getNextPayday(
   if (fromDay <= anchor) return anchor;
 
   if (frequency === "semi_monthly") {
-    const anchorDayOfMonth = calendarParts(anchor, timezone).day;
-    const secondDayOfMonth = ((anchorDayOfMonth + 14 - 1) % 28) + 1;
-    const paydays = [anchorDayOfMonth, secondDayOfMonth].sort((a, b) => a - b);
+    const paydays = semiMonthlyPaydayDays(anchor, timezone);
 
     let candidate = anchor;
     for (let i = 0; i < 62; i++) {
@@ -73,17 +96,53 @@ export function getNextPayday(
   }
 
   if (frequency === "monthly") {
-    let candidate = anchor;
-    while (candidate < fromDay) {
-      candidate = addMonths(candidate, 1, timezone);
-    }
-    return candidate;
+    return monthlyPaydayForCycle(anchor, timezone, monthlyCyclesUntil(anchor, timezone, fromDay));
   }
 
   const intervalDays = frequency === "weekly" ? 7 : 14;
   const daysSinceAnchor = Math.round((fromDay.getTime() - anchor.getTime()) / 86_400_000);
   const cyclesElapsed = Math.ceil(daysSinceAnchor / intervalDays);
   return addDays(anchor, cyclesElapsed * intervalDays, timezone);
+}
+
+/**
+ * The pay period that ends on the next payday at or after `from` -- i.e.
+ * "the period you're currently being paid for". `start` is exclusive of
+ * the previous payday's own day (periods don't overlap); if the schedule's
+ * anchor payday itself hasn't happened yet, there is no completed period
+ * to report, so `start` equals `end` (an empty period, not a fabricated
+ * guess at pre-anchor history).
+ */
+export function getPayPeriod(
+  anchorDate: Date | string,
+  frequency: PayFrequency,
+  timezone: string,
+  from: Date = new Date()
+): { start: Date; end: Date } {
+  const anchor = localMidnight(anchorDate, timezone);
+  const end = getNextPayday(anchorDate, frequency, timezone, from);
+
+  if (end.getTime() === anchor.getTime()) {
+    return { start: anchor, end };
+  }
+
+  if (frequency === "weekly") return { start: addDays(end, -7, timezone), end };
+  if (frequency === "biweekly") return { start: addDays(end, -14, timezone), end };
+  if (frequency === "monthly") {
+    const cycles = monthlyCyclesUntil(anchor, timezone, localMidnight(from, timezone));
+    return { start: monthlyPaydayForCycle(anchor, timezone, cycles - 1), end };
+  }
+
+  // semi_monthly: the previous payday is the schedule's other day-of-month,
+  // in this month if `end` is the later of the two, otherwise in the prior
+  // month.
+  const [d1, d2] = semiMonthlyPaydayDays(anchor, timezone);
+  const { year, month, day } = calendarParts(end, timezone);
+  const start =
+    day === d2
+      ? fromZonedTime(new Date(Date.UTC(year, month, d1, 0, 0, 0, 0)), timezone)
+      : fromZonedTime(new Date(Date.UTC(year, month - 1, d2, 0, 0, 0, 0)), timezone);
+  return { start, end };
 }
 
 /** Number of pay periods per year for a given frequency (average, for semi-monthly/monthly). */

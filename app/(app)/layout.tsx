@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SidebarNav } from "@/components/app-shell/sidebar-nav";
 import { MobileNav } from "@/components/app-shell/mobile-nav";
 import { Header } from "@/components/app-shell/header";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -26,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <SidebarNav />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header fullName={profile?.full_name ?? null} email={profile?.email ?? user.email ?? null} />
+        <InstallPrompt />
         <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
           <div className="mx-auto w-full max-w-6xl p-4 md:p-6">{children}</div>
         </main>

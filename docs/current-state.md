@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-09-22 (pay & taxes added).
+Last updated: 2026-09-22 (PWA install/offline support, pay-period statements, loading/error states added).
 
 This document describes what actually exists in the codebase today, as
 opposed to what the product spec eventually calls for. See `docs/roadmap.md`
@@ -57,18 +57,33 @@ for what's next.
   `docs/ai.md` for the full design. Requires `ANTHROPIC_API_KEY` to be set;
   without it, the assistant shows an error instead of crashing.
 - **Pay & Taxes** (`/taxes`): upcoming-payday projection per job
-  (`lib/calculations/payday.ts`, DST-safe) and an estimated income tax +
-  payroll deduction breakdown (`lib/calculations/tax/`) for a user-selected
-  country/province-or-state/city, seeded from the user's own recorded
-  earnings and editable. Single-filer, standard-deduction, 2024-bracket
-  estimate, clearly labeled as such throughout the UI. See `docs/tax.md`.
+  (`lib/calculations/payday.ts`, DST-safe), a pay-stub-style **pay period
+  statement** (hours + gross pay from recorded shifts, plus estimated
+  deductions/net pay for the current period once a jurisdiction is set),
+  and an annual income tax + payroll deduction breakdown
+  (`lib/calculations/tax/`) for a user-selected country/province-or-state/city,
+  seeded from the user's own recorded earnings and editable. Single-filer,
+  standard-deduction, 2024-bracket estimate, clearly labeled as such
+  throughout the UI. Also surfaced as a compact "next payday" card on the
+  dashboard. See `docs/tax.md`.
+- **Installable / offline-resilient app (PWA)**: `app/manifest.ts` +
+  `public/sw.js` make WorkLedger installable to a phone's home screen
+  (`components/pwa/install-prompt.tsx` prompts on supporting browsers) and
+  keeps the static app shell available when the network drops, falling back
+  to a friendly `/offline` page instead of a browser error. Dynamic/auth
+  pages always go to the network first -- nothing work-record-related is
+  ever served stale.
+- **Loading and error states**: `app/(app)/loading.tsx` shows a skeleton
+  while any authenticated page's data loads; `app/(app)/error.tsx` and
+  `app/global-error.tsx` catch runtime errors with a recovery screen instead
+  of a blank page or default Next.js error overlay.
 
 Verified directly against the live Supabase project (`WorkLedger`,
 `hdeshlblsdsplpyayanz`) via SQL: the new-user trigger creates a profile and
 default settings row, the one-active-shift constraint rejects a duplicate
 clock-in, and RLS correctly hides one user's jobs/shifts/breaks from another
 user while still exposing their own. `npm run lint`, `npm run typecheck`,
-`npm test` (68/68), and `npm run build` all pass.
+`npm test` (80/80), and `npm run build` all pass.
 
 ## What's stubbed or missing
 
@@ -80,8 +95,8 @@ user while still exposing their own. `npm run lint`, `npm run typecheck`,
   this month's shifts + edit), not tabbed.
 - **PDF export**: only CSV export is implemented for reports.
 - **Notifications**: `user_settings.notifications_enabled` exists as a
-  preference, but no actual push/email notifications are sent.
-- **Offline support / PWA**: not implemented.
+  preference, but no actual push/email notifications are sent (payday and
+  shift reminders are shown in-app only -- see Pay & Taxes below).
 - **E2E browser test**: Playwright is installed but no `tests/e2e/` suite
   exists yet, and the sandboxed build environment used for this initial
   build could not reach the live Supabase project's domain over the
@@ -98,9 +113,9 @@ user while still exposing their own. `npm run lint`, `npm run typecheck`,
   conversation is resumed), and no rate limiting on the chat endpoint yet.
 - **Pay & Taxes**: tax bracket data (`lib/calculations/tax/`) is a
   hand-written, point-in-time snapshot for the 2024 tax year, not pulled
-  from a live feed -- see the caveats in `docs/tax.md`. No pay-schedule
-  reminders/notifications yet (payday is shown on `/taxes` only, not pushed
-  to the user).
+  from a live feed -- see the caveats in `docs/tax.md`. No push/email
+  payday reminders yet -- payday surfaces on the dashboard and `/taxes`
+  when the app is open, but isn't pushed to the user in the background.
 
 ## Live deployment
 

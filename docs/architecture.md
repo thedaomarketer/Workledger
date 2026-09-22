@@ -103,6 +103,31 @@ project is stable, regenerate it for real:
 npx supabase gen types typescript --project-id <id> > lib/supabase/database.types.ts
 ```
 
+## PWA / offline resilience
+
+`app/manifest.ts` (Next's native App Router manifest convention) and
+`public/sw.js` make WorkLedger installable and give it a real app shell:
+
+- The service worker caches only immutable, fingerprinted assets
+  (`/_next/static/*`, `/icons/*`) cache-first, and precaches `/offline`.
+  Every page navigation still goes to the network first -- work records,
+  earnings, and auth state must never be served from a stale cache --
+  falling back to `/offline` only when the network is genuinely
+  unreachable.
+- `/manifest.webmanifest` and `/sw.js` are excluded from `proxy.ts`'s auth
+  matcher (alongside static assets) so an unauthenticated fetch of either
+  never gets redirected to `/login`; `/offline` is listed in
+  `lib/supabase/middleware.ts#PUBLIC_PATHS` for the same reason, since the
+  service worker fetches it once at install time while online.
+- `components/pwa/register-sw.tsx` registers the worker from the root
+  layout; `components/pwa/install-prompt.tsx` surfaces the browser's
+  `beforeinstallprompt` event as a dismissible banner in the authenticated
+  shell.
+- `app/(app)/loading.tsx` (a shared skeleton) and `app/(app)/error.tsx` +
+  `app/global-error.tsx` (recovery screens) cover the loading/error states
+  the Definition of Done requires, for every route under `(app)` at once
+  rather than per-page.
+
 ## Why the shadcn CLI wasn't used
 
 The shadcn CLI's `init`/`add` commands fetch component source from

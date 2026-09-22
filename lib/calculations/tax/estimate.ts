@@ -118,3 +118,33 @@ export function estimateTax(
   }
   return estimateUsTax(grossAnnualIncomeCents, jurisdiction.region, jurisdiction.city);
 }
+
+export interface PayPeriodTaxEstimate {
+  periodGrossCents: number;
+  periodDeductionsCents: number;
+  periodNetCents: number;
+  /** The full-year estimate this period's deductions were derived from (this period's gross, annualized). */
+  annualEquivalent: TaxEstimateResult;
+}
+
+/**
+ * Estimates a single pay period's withholding by annualizing this period's
+ * gross pay (the standard payroll approach -- withholding tables are keyed
+ * off an annualized rate, not the single period in isolation) and dividing
+ * the resulting annual deductions back down by the number of periods.
+ */
+export function estimateTaxForPeriod(
+  periodGrossCents: number,
+  periodsPerYear: number,
+  jurisdiction: JurisdictionSelection
+): PayPeriodTaxEstimate {
+  const annualEquivalent = estimateTax(Math.round(periodGrossCents * periodsPerYear), jurisdiction);
+  const periodDeductionsCents = Math.round(annualEquivalent.totalDeductionsCents / periodsPerYear);
+
+  return {
+    periodGrossCents,
+    periodDeductionsCents,
+    periodNetCents: periodGrossCents - periodDeductionsCents,
+    annualEquivalent,
+  };
+}

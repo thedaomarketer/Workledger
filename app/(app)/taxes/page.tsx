@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireUserContext } from "@/lib/data/context";
-import { getAnnualIncomeEstimate, getUpcomingPaydays } from "@/lib/data/tax";
+import { getAnnualIncomeEstimate, getPayPeriodStatements, getUpcomingPaydays } from "@/lib/data/tax";
 import type { JurisdictionSelection } from "@/lib/calculations/tax";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaxSettingsForm } from "@/components/taxes/tax-settings-form";
 import { PaydayCard } from "@/components/taxes/payday-card";
+import { PayStatementCard } from "@/components/taxes/pay-statement-card";
 import { TaxBreakdownCard } from "@/components/taxes/tax-breakdown-card";
 
 export default async function TaxesPage() {
@@ -12,7 +13,7 @@ export default async function TaxesPage() {
   if (!ctx) return null;
 
   const supabase = await createClient();
-  const [{ data: settings }, incomeEstimate, paydays] = await Promise.all([
+  const [{ data: settings }, incomeEstimate, paydays, statements] = await Promise.all([
     supabase
       .from("user_settings")
       .select("tax_country, tax_region, tax_city")
@@ -20,6 +21,7 @@ export default async function TaxesPage() {
       .maybeSingle(),
     getAnnualIncomeEstimate(ctx.userId),
     getUpcomingPaydays(ctx.userId, ctx.timezone),
+    getPayPeriodStatements(ctx.userId, ctx.timezone),
   ]);
 
   if (!settings) return null;
@@ -39,6 +41,8 @@ export default async function TaxesPage() {
       </div>
 
       <PaydayCard paydays={paydays} />
+
+      <PayStatementCard statements={statements} jurisdiction={jurisdiction} timezone={ctx.timezone} currency={ctx.currency} />
 
       <TaxSettingsForm settings={settings} />
 

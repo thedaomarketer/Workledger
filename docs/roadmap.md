@@ -25,10 +25,15 @@ Status as of this build. See `docs/current-state.md` for the detailed
 - **Phase 6 — AI**: implemented. Chat assistant at `/assistant`, backed by
   Claude with 9 read-only tools scoped to the user's own data. See
   `docs/ai.md`.
-- **Pay & Taxes**: implemented. `/taxes` shows upcoming paydays per job
-  (`lib/calculations/payday.ts`) and an estimated income tax + payroll
-  deduction breakdown (`lib/calculations/tax/`) for a user-selected
-  country/province-or-state/city. See `docs/tax.md`.
+- **Pay & Taxes**: implemented. `/taxes` shows upcoming paydays and a
+  pay-stub-style pay period statement per job (`lib/calculations/payday.ts`)
+  and an estimated income tax + payroll deduction breakdown
+  (`lib/calculations/tax/`) for a user-selected country/province-or-state/city,
+  also surfaced on the dashboard. See `docs/tax.md`.
+- **Phase 7 — Mobile/PWA** (partial): installable app (manifest + service
+  worker + install prompt), offline fallback for the static shell,
+  skeleton loading states and error boundaries across the authenticated
+  app. No push notifications yet.
 - **Deployed**: live on Vercel at https://workledger-three.vercel.app.
 
 ## Not started
@@ -36,9 +41,11 @@ Status as of this build. See `docs/current-state.md` for the detailed
 - **Billing/subscriptions**: Stripe integration for the Free/Pro/Business
   plans described in the original spec, using the already-connected
   "Di Juicy Oasis" Stripe account. Not started.
-- **Phase 7 — Mobile/PWA**: responsive mobile UI exists (bottom nav,
-  card-based layouts); no offline support, no push notifications, no PWA
-  manifest/service worker.
+- **Push notifications**: web push for payday/shift/break reminders --
+  `user_settings.notifications_enabled` exists as the preference toggle,
+  but nothing sends a push yet (would need a `push_subscriptions` table +
+  VAPID keys + a scheduled sender, e.g. a Supabase Edge Function on
+  `pg_cron`).
 - **Phase 8 — Monetization**: not started. No Stripe integration, no plan
   gating.
 - **Phase 9 — Business/Teams**: not started.
@@ -62,10 +69,12 @@ for polish):
    entries), wired to the existing private bucket + signed URLs.
 5. **P2** — PDF export for reports.
 6. **P2** — Billing/subscriptions (Stripe) — next up.
-7. **P3** — Notifications (shift/clock-in/clock-out/break reminders,
+7. **P3** — Push notifications (shift/clock-in/clock-out/break reminders,
    weekly summary, payday reminders) — `user_settings.notifications_enabled`
-   already exists as the preference toggle.
-8. **P3** — PWA / offline support for the clock-in flow specifically (the
-   spec calls out that a clock-in must never be silently lost to a network
-   drop).
+   already exists as the preference toggle; the app is now installable, so
+   this is the natural next mobile-parity step.
+8. **P3** — Make the clock-in flow itself resilient to a mid-punch network
+   drop (queue the punch locally and sync when back online) -- today the
+   offline fallback covers navigation/shell, not an in-flight clock-in
+   submission.
 9. **P4** — Team/business features.

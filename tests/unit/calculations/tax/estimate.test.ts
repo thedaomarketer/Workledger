@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimateTax } from "@/lib/calculations/tax/estimate";
+import { estimateTax, estimateTaxForPeriod } from "@/lib/calculations/tax/estimate";
 import { dollarsToCents } from "@/lib/calculations/money";
 
 describe("estimateTax", () => {
@@ -49,5 +49,23 @@ describe("estimateTax", () => {
   it("throws on an unknown province or state code", () => {
     expect(() => estimateTax(dollarsToCents(50_000), { country: "CA", region: "ZZ" })).toThrow();
     expect(() => estimateTax(dollarsToCents(50_000), { country: "US", region: "ZZ" })).toThrow();
+  });
+});
+
+describe("estimateTaxForPeriod", () => {
+  it("keeps period net + period deductions equal to period gross", () => {
+    const period = estimateTaxForPeriod(dollarsToCents(2_500), 24, { country: "US", region: "TX" });
+    expect(period.periodNetCents + period.periodDeductionsCents).toBe(period.periodGrossCents);
+  });
+
+  it("annualizes the period's gross pay by the period count", () => {
+    const period = estimateTaxForPeriod(dollarsToCents(2_500), 24, { country: "CA", region: "ON" });
+    expect(period.annualEquivalent.grossAnnualIncomeCents).toBe(dollarsToCents(60_000));
+  });
+
+  it("charges zero deductions for a zero-income period", () => {
+    const period = estimateTaxForPeriod(0, 26, { country: "US", region: "CA" });
+    expect(period.periodDeductionsCents).toBe(0);
+    expect(period.periodNetCents).toBe(0);
   });
 });

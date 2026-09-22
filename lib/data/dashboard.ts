@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { requireUserContext } from "./context";
 import { getActiveShift, getCompletedShiftsInRange, getUpcomingShifts } from "./shifts";
+import { getUpcomingPaydays } from "./tax";
 import {
   dollarsToCents,
   getLocalDayBounds,
@@ -23,7 +24,7 @@ export async function getDashboardData() {
   const week = getWorkweekBounds(now, ctx.timezone, ctx.weekStartsOn);
   const month = getLocalMonthBounds(now, ctx.timezone);
 
-  const [{ data: profile }, { data: jobs }, activeShift, monthShifts, upcomingShifts, { data: journalEntries }] =
+  const [{ data: profile }, { data: jobs }, activeShift, monthShifts, upcomingShifts, { data: journalEntries }, paydays] =
     await Promise.all([
       supabase.from("profiles").select("full_name").eq("id", ctx.userId).maybeSingle(),
       supabase.from("jobs").select("*").eq("user_id", ctx.userId).eq("is_active", true),
@@ -37,6 +38,7 @@ export async function getDashboardData() {
         .eq("user_id", ctx.userId)
         .order("event_at", { ascending: false })
         .limit(5),
+      getUpcomingPaydays(ctx.userId, ctx.timezone),
     ]);
 
   const jobRates = Object.fromEntries(
@@ -83,5 +85,6 @@ export async function getDashboardData() {
     upcomingShifts,
     journalEntries: journalEntries ?? [],
     recentCompletedShifts: monthShifts.filter((s) => s.status === "completed").slice(0, 5),
+    nextPayday: paydays[0] ?? null,
   };
 }
