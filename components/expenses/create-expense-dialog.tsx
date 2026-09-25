@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { useActionState, useEffect, useId } from "react";
 import { Plus } from "lucide-react";
 
 import { createExpenseAction, type ActionResult } from "@/lib/actions/expenses";
+import { useAutoOpen } from "@/hooks/use-auto-open";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,18 +34,16 @@ function todayLocal(): string {
 }
 
 export function CreateExpenseDialog({ jobs }: { jobs: { id: string; name: string }[] }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useAutoOpen("1");
   const [state, formAction, pending] = useActionState(createExpenseAction, initialState);
   const id = useId();
 
   useEffect(() => {
     if (!pending && state === initialState) return;
-    // Close the dialog once the server action reports success; this is
-    // the one legitimate use of setState-in-effect here, since useActionState
+    // Close the dialog once the server action reports success; useActionState
     // gives no other hook into "the action just finished".
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!pending && !state.error) setOpen(false);
-  }, [pending, state]);
+  }, [pending, state, setOpen]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

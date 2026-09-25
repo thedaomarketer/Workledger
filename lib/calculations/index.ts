@@ -6,3 +6,4 @@ export * from "./workweek";
 export * from "./summary";
 export * from "./period";
 export * from "./payday";
+export * from "./timeseries";

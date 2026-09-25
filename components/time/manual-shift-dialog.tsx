@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect } from "react";
 import { Plus } from "lucide-react";
 
 import { createManualShiftAction, type ActionResult } from "@/lib/actions/shifts";
+import { useAutoOpen } from "@/hooks/use-auto-open";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,17 +19,15 @@ import { ShiftFormFields } from "./shift-form-fields";
 const initialState: ActionResult = {};
 
 export function ManualShiftDialog({ jobs }: { jobs: { id: string; name: string }[] }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useAutoOpen("shift");
   const [state, formAction, pending] = useActionState(createManualShiftAction, initialState);
 
   useEffect(() => {
     if (!pending && state === initialState) return;
-    // Close the dialog once the server action reports success; this is
-    // the one legitimate use of setState-in-effect here, since useActionState
+    // Close the dialog once the server action reports success; useActionState
     // gives no other hook into "the action just finished".
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!pending && !state.error) setOpen(false);
-  }, [pending, state]);
+  }, [pending, state, setOpen]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

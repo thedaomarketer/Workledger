@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-09-22 (PWA install/offline support, pay-period statements, loading/error states added).
+Last updated: 2026-09-25 (visual analytics charts, quick-create menu added).
 
 This document describes what actually exists in the codebase today, as
 opposed to what the product spec eventually calls for. See `docs/roadmap.md`
@@ -77,13 +77,37 @@ for what's next.
   while any authenticated page's data loads; `app/(app)/error.tsx` and
   `app/global-error.tsx` catch runtime errors with a recovery screen instead
   of a blank page or default Next.js error overlay.
+- **Visual analytics** (`/reports`): hand-rolled, dependency-free charts
+  built in plain HTML/CSS (no charting library) --
+  `components/charts/time-series-bar-chart.tsx`
+  (weekly hours, regular vs. overtime stacked, and weekly earnings) and
+  `components/charts/category-bar-chart.tsx` (hours/earnings by job,
+  expenses by category) -- built on `lib/calculations/timeseries.ts#summarizeByWeek`
+  (DST-safe weekly bucketing, reusing the same duration/overtime math as
+  every other report) and `lib/charts/scale.ts` (nice-numbers axis
+  scaling). Colors follow the dataviz skill's validated, CVD-checked
+  categorical palette (`--chart-1..8` in `app/globals.css`); job/category
+  bars carry a direct value label and hover/focus tooltip, never gating a
+  number behind hover alone. The existing "By job" table remains the exact
+  numeric reference alongside the charts.
+- **Quick-create menu**: a floating "+" button in the mobile bottom nav
+  (matching a native app's primary action button) and a "Create" button at
+  the top of the desktop sidebar (`components/app-shell/create-menu.tsx`)
+  open a sheet of shortcuts -- log a shift, add an expense, add mileage, new
+  journal entry, add a job -- that deep-link to the page owning that create
+  dialog via a `?new=` param (`hooks/use-auto-open.ts`), so the dialog opens
+  automatically without duplicating any form/validation logic.
 
 Verified directly against the live Supabase project (`WorkLedger`,
 `hdeshlblsdsplpyayanz`) via SQL: the new-user trigger creates a profile and
 default settings row, the one-active-shift constraint rejects a duplicate
 clock-in, and RLS correctly hides one user's jobs/shifts/breaks from another
 user while still exposing their own. `npm run lint`, `npm run typecheck`,
-`npm test` (80/80), and `npm run build` all pass.
+`npm test` (88/88), and `npm run build` all pass. The charts and quick-create
+menu were also verified visually (desktop + mobile viewports, hover/focus
+tooltips) via a temporary unauthenticated preview route + Playwright
+screenshots, since this sandbox can't reach the live Supabase project to
+exercise the authenticated app directly.
 
 ## What's stubbed or missing
 

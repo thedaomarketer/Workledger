@@ -128,6 +128,29 @@ npx supabase gen types typescript --project-id <id> > lib/supabase/database.type
   the Definition of Done requires, for every route under `(app)` at once
   rather than per-page.
 
+## Charts
+
+`components/charts/` (`time-series-bar-chart.tsx`, `category-bar-chart.tsx`)
+are hand-rolled in plain HTML/CSS -- no charting library. Both are server
+components (no client state; hover/focus tooltips are pure CSS via
+`group`/`group-hover`/`group-focus-within`), so they cost nothing to
+hydrate. `lib/charts/scale.ts#niceAxisMax` picks a round axis ceiling and
+tick step (the standard "nice numbers" algorithm); the chart derives its
+gridline count from `max / step` rather than assuming a fixed tick count,
+since `max` is only guaranteed to be a multiple of `step`, not of
+`step * tickCount` -- getting this wrong once let a bar visually overshoot
+the topmost gridline (see the regression test in
+`tests/unit/charts/scale.test.ts`).
+
+Colors come from `--chart-1` through `--chart-8` in `app/globals.css`, set
+to the `dataviz` skill's validated default categorical palette (fixed hue
+order, CVD-checked) rather than shadcn's arbitrary scaffold values, which
+were unused anywhere in the codebase before this. Where the app already has
+an established per-entity color (a job's own `color` field, shown as
+swatches throughout the dashboard/payday UI), charts reuse *that* instead
+of the categorical palette, for one consistent color-to-job mapping across
+the whole app rather than two competing ones.
+
 ## Why the shadcn CLI wasn't used
 
 The shadcn CLI's `init`/`add` commands fetch component source from

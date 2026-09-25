@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireUserContext } from "@/lib/data/context";
-import { dollarsToCents, formatCents, getLocalMonthBounds, summarizeShiftsByJob, sumJobSummaries } from "@/lib/calculations";
+import {
+  dollarsToCents,
+  formatCents,
+  getLocalMonthBounds,
+  summarizeByWeek,
+  summarizeShiftsByJob,
+  sumJobSummaries,
+} from "@/lib/calculations";
 import { formatMinutesAsHours } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,9 +20,30 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Download } from "lucide-react";
+import { TimeSeriesBarChart } from "@/components/charts/time-series-bar-chart";
+import { CategoryBarChart } from "@/components/charts/category-bar-chart";
+
+const MAX_TREND_WEEKS = 16;
+
+const EXPENSE_CATEGORY_COLORS: Record<string, string> = {
+  meals: "var(--chart-1)",
+  transport: "var(--chart-2)",
+  supplies: "var(--chart-3)",
+  equipment: "var(--chart-4)",
+  lodging: "var(--chart-5)",
+  other: "var(--chart-6)",
+};
 
 function toDateInputValue(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+function formatWeekLabel(date: Date, timezone: string): string {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: timezone }).format(date);
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 export default async function ReportsPage({
@@ -66,17 +94,16 @@ export default async function ReportsPage({
     ])
   );
 
-  const summaries = summarizeShiftsByJob(
-    (shifts ?? [])
-      .filter((s) => s.actual_start)
-      .map((s) => ({
-        jobId: s.job_id,
-        start: s.actual_start!,
-        end: s.actual_end,
-        breaks: s.breaks.map((b) => ({ startedAt: b.started_at, endedAt: b.ended_at, isPaid: b.is_paid })),
-      })),
-    jobRates
-  );
+  const shiftInputs = (shifts ?? [])
+    .filter((s) => s.actual_start)
+    .map((s) => ({
+      jobId: s.job_id,
+      start: s.actual_start!,
+      end: s.actual_end,
+      breaks: s.breaks.map((b) => ({ startedAt: b.started_at, endedAt: b.ended_at, isPaid: b.is_paid })),
+    }));
+
+  const summaries = summarizeShiftsByJob(shiftInputs, jobRates);
 
   const totals = sumJobSummaries(summaries);
   const totalExpenses = (expenses ?? []).reduce((sum, e) => sum + e.amount, 0);
@@ -87,6 +114,39 @@ export default async function ReportsPage({
     start: toDateInputValue(rangeStart),
     end: toDateInputValue(rangeEnd),
   }).toString();
+
+  const weeklyTotals = summarizeByWeek(shiftInputs, jobRates, ctx.timezone, ctx.weekStartsOn, rangeStart, rangeEnd);
+  const showWeeklyTrend = weeklyTotals.length > 1 && weeklyTotals.length <= MAX_TREND_WEEKS;
+
+  const weeklyHoursData = weeklyTotals.map((week) => ({
+    label: formatWeekLabel(week.weekStart, ctx.timezone),
+    values: { regular: week.regularMinutes, overtime: week.overtimeMinutes },
+  }));
+  const weeklyEarningsData = weeklyTotals.map((week) => ({
+    label: formatWeekLabel(week.weekStart, ctx.timezone),
+    values: { earnings: week.earningsCents },
+  }));
+
+  const hoursByJobData = Object.entries(summaries).map(([jobId, summary]) => ({
+    label: jobsById.get(jobId)?.name ?? "Unknown job",
+    value: summary.paidMinutes,
+    color: jobsById.get(jobId)?.color ?? "var(--chart-1)",
+  }));
+  const earningsByJobData = Object.entries(summaries).map(([jobId, summary]) => ({
+    label: jobsById.get(jobId)?.name ?? "Unknown job",
+    value: summary.earningsCents,
+    color: jobsById.get(jobId)?.color ?? "var(--chart-1)",
+  }));
+
+  const expensesByCategory = new Map<string, number>();
+  for (const expense of expenses ?? []) {
+    expensesByCategory.set(expense.category, (expensesByCategory.get(expense.category) ?? 0) + expense.amount);
+  }
+  const expensesByCategoryData = [...expensesByCategory.entries()].map(([category, amount]) => ({
+    label: capitalize(category),
+    value: amount,
+    color: EXPENSE_CATEGORY_COLORS[category] ?? "var(--chart-6)",
+  }));
 
   return (
     <div className="space-y-6">
@@ -153,6 +213,91 @@ export default async function ReportsPage({
           </CardContent>
         </Card>
       </div>
+
+      {showWeeklyTrend && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Hours by week</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TimeSeriesBarChart
+                data={weeklyHoursData}
+                series={[
+                  { key: "regular", label: "Regular", colorClassName: "bg-chart-1" },
+                  { key: "overtime", label: "Overtime", colorClassName: "bg-chart-2" },
+                ]}
+                formatValue={formatMinutesAsHours}
+                emptyMessage="No completed shifts in this range."
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Earnings by week</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TimeSeriesBarChart
+                data={weeklyEarningsData}
+                series={[{ key: "earnings", label: "Earnings", colorClassName: "bg-chart-1" }]}
+                formatValue={(cents) => formatCents(cents, ctx.currency)}
+                emptyMessage="No completed shifts in this range."
+              />
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {(hoursByJobData.length > 0 || earningsByJobData.length > 0) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Hours by job</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CategoryBarChart
+                data={hoursByJobData}
+                formatValue={formatMinutesAsHours}
+                emptyMessage="No completed shifts in this range."
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Earnings by job</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CategoryBarChart
+                data={earningsByJobData}
+                formatValue={(cents) => formatCents(cents, ctx.currency)}
+                emptyMessage="No completed shifts in this range."
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {expensesByCategoryData.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Expenses by category</CardTitle>
+            <Button asChild variant="ghost" size="sm">
+              <a href="/expenses">View all</a>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <CategoryBarChart
+              data={expensesByCategoryData}
+              formatValue={(dollars) =>
+                new Intl.NumberFormat("en-US", { style: "currency", currency: ctx.currency }).format(dollars)
+              }
+              emptyMessage="No expenses in this range."
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

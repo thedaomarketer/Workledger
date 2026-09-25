@@ -20,8 +20,11 @@ Status as of this build. See `docs/current-state.md` for the detailed
   captured in `audit_logs`).
 - **Phase 4 — Money**: overtime calculation, expenses, mileage, earnings
   baked into the dashboard and reports.
-- **Phase 5 — Reports** (partial): hours/earnings/overtime/expense
-  reports with job and date-range filters, CSV export. No PDF export.
+- **Phase 5 — Reports**: hours/earnings/overtime/expense reports with job
+  and date-range filters, CSV export, plus visual analytics -- weekly
+  hours/earnings trend charts and hours/earnings/expense breakdowns by
+  job/category (`components/charts/`, dataviz-skill-validated palette). No
+  PDF export.
 - **Phase 6 — AI**: implemented. Chat assistant at `/assistant`, backed by
   Claude with 9 read-only tools scoped to the user's own data. See
   `docs/ai.md`.
@@ -33,7 +36,9 @@ Status as of this build. See `docs/current-state.md` for the detailed
 - **Phase 7 — Mobile/PWA** (partial): installable app (manifest + service
   worker + install prompt), offline fallback for the static shell,
   skeleton loading states and error boundaries across the authenticated
-  app. No push notifications yet.
+  app, plus a floating quick-create action button (mobile bottom nav) and
+  matching sidebar button (desktop) for the five most common create flows.
+  No push notifications yet.
 - **Deployed**: live on Vercel at https://workledger-three.vercel.app.
 
 ## Not started

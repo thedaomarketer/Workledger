@@ -25,6 +25,28 @@ spec calls out by name:
 - `summary.test.ts`: aggregating multiple shifts per job with overtime
   applied once to the total, excluding incomplete shifts, keeping separate
   jobs independent.
+- `payday.test.ts`: next-payday projection for weekly/biweekly/monthly/
+  semi-monthly schedules, a DST-crossing weekly payday, a monthly anchor on
+  the 29th-31st clamping to a shorter month without permanently drifting
+  off the anchor day, and `getPayPeriod`'s start/end boundaries (including
+  the clamped-month-end case and the "anchor hasn't happened yet" empty
+  period).
+- `timeseries.test.ts`: `summarizeByWeek` includes an all-zero week rather
+  than skipping a week with no shifts, computes correct weekly earnings,
+  and produces consecutive non-overlapping weeks across a DST transition.
+
+`tests/unit/calculations/tax/` — bracket math (marginal tax, capped flat
+deductions) and the full `estimateTax`/`estimateTaxForPeriod` pipeline for
+both countries, including the zero-income and unknown-jurisdiction cases.
+
+`tests/unit/charts/scale.test.ts` — the "nice numbers" axis-scaling helper
+behind the Reports charts, including a regression case for a bug where a
+fixed tick count could stop short of the computed axis max and let a bar
+visually overshoot the topmost gridline.
+
+`tests/unit/ai/period.test.ts` — the AI assistant's natural-language period
+resolver ("today", "last week", etc.) against the same day/week/month
+bounds helpers used everywhere else.
 
 Run: `npm test` (or `npm run test:watch`).
 

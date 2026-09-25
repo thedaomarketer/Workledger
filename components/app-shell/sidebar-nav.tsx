@@ -6,6 +6,7 @@ import { ClipboardCheck, HelpCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS, SECONDARY_NAV_ITEMS } from "./nav-items";
+import { CreateMenu } from "./create-menu";
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -19,6 +20,9 @@ export function SidebarNav() {
       <div className="flex h-14 items-center gap-2 border-b px-5 font-semibold">
         <ClipboardCheck className="size-5 text-primary" />
         WorkLedger
+      </div>
+      <div className="p-3 pb-0">
+        <CreateMenu variant="button" />
       </div>
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
         {NAV_ITEMS.map((item) => (
