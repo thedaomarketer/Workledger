@@ -79,7 +79,7 @@ export function PreferencesForm({
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-md border p-3">
+          <div className="flex items-center justify-between gap-4 rounded-xl bg-muted px-3.5 py-3">
             <div>
               <p className="text-sm font-medium">Overtime tracking</p>
               <p className="text-xs text-muted-foreground">Applies when a job doesn&apos;t set its own threshold.</p>
@@ -103,7 +103,7 @@ export function PreferencesForm({
             </div>
           )}
 
-          <div className="flex items-center justify-between rounded-md border p-3">
+          <div className="flex items-center justify-between gap-4 rounded-xl bg-muted px-3.5 py-3">
             <div>
               <p className="text-sm font-medium">Notifications</p>
               <p className="text-xs text-muted-foreground">Shift, clock-in, and break reminders.</p>

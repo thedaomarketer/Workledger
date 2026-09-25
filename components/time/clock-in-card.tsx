@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Play } from "lucide-react";
+import Link from "next/link";
+import { Play, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { clockInAction } from "@/lib/actions/shifts";
@@ -28,8 +29,13 @@ export function ClockInCard({ jobs }: { jobs: Job[] }) {
   if (jobs.length === 0) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          Add a job before you clock in.
+        <CardContent className="flex flex-col items-center gap-3 py-6 text-center">
+          <p className="text-sm text-muted-foreground">Add a job before you clock in.</p>
+          <Button asChild>
+            <Link href="/jobs?new=1">
+              <Plus /> Add your first job
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     );

@@ -22,7 +22,7 @@ export default async function JournalPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Journal</h1>
+          <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">Journal</h1>
           <p className="text-sm text-muted-foreground">Your Work Evidence Timeline.</p>
         </div>
         <CreateEntryDialog jobs={jobs ?? []} />

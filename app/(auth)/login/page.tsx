@@ -19,19 +19,19 @@ export default async function LoginPage({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Welcome back</CardTitle>
+        <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
         <CardDescription>Sign in to your WorkLedger account.</CardDescription>
       </CardHeader>
       <CardContent>
         {params.registered && (
-          <p className="mb-4 rounded-md bg-success/10 px-3 py-2 text-sm text-success">
+          <p className="mb-4 rounded-xl bg-success/10 px-3.5 py-2.5 text-sm text-success">
             Check your email to confirm your account, then sign in below.
           </p>
         )}
         <LoginForm redirectTo={params.redirectTo} />
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="font-medium text-foreground underline underline-offset-4">
+          <Link href="/register" className="font-semibold text-primary hover:underline">
             Sign up
           </Link>
         </p>

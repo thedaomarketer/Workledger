@@ -15,7 +15,7 @@ export default function OfflinePage() {
       </div>
       <a
         href="/dashboard"
-        className="mt-2 inline-flex h-11 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground"
+        className="mt-2 inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground"
       >
         Try again
       </a>

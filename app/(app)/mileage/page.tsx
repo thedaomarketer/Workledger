@@ -22,7 +22,7 @@ export default async function MileagePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Mileage</h1>
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">Mileage</h1>
         <CreateMileageDialog jobs={jobs ?? []} />
       </div>
       <Card>

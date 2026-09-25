@@ -51,7 +51,7 @@ export default async function JobsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Jobs</h1>
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">Jobs</h1>
         <CreateJobDialog />
       </div>
 

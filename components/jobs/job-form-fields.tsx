@@ -140,7 +140,7 @@ export function JobFormFields({
           ))}
         </div>
       </div>
-      <div className="space-y-2 rounded-md border p-3">
+      <div className="space-y-2 rounded-2xl border border-black/[0.06] p-3.5">
         <p className="text-sm font-medium">Pay schedule (optional)</p>
         <p className="text-xs text-muted-foreground">
           Powers the payday countdown and tax withholding estimate on the Pay &amp; Taxes page.

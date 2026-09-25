@@ -62,7 +62,7 @@ export default async function JobDetailPage({
         <div className="flex items-center gap-3">
           <span className="size-4 rounded-full" style={{ backgroundColor: job.color }} />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{job.name}</h1>
+            <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">{job.name}</h1>
             {job.job_title && <p className="text-sm text-muted-foreground">{job.job_title}</p>}
           </div>
           {!job.is_active && <Badge variant="secondary">Archived</Badge>}
@@ -71,27 +71,27 @@ export default async function JobDetailPage({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="gap-1.5">
+          <CardHeader>
             <CardTitle className="text-sm font-normal text-muted-foreground">This month</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold tabular-nums">
+          <CardContent className="text-[26px] leading-tight font-bold tracking-tight">
             {summary ? formatMinutesAsHours(summary.paidMinutes) : "0h"}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="gap-1.5">
+          <CardHeader>
             <CardTitle className="text-sm font-normal text-muted-foreground">Overtime</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold tabular-nums">
+          <CardContent className="text-[26px] leading-tight font-bold tracking-tight">
             {summary ? formatMinutesAsHours(summary.overtimeMinutes) : "0h"}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="gap-1.5">
+          <CardHeader>
             <CardTitle className="text-sm font-normal text-muted-foreground">Earnings</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold tabular-nums">
+          <CardContent className="text-[26px] leading-tight font-bold tracking-tight">
             {summary ? formatCents(summary.earningsCents) : "$0.00"}
           </CardContent>
         </Card>

@@ -1,4 +1,4 @@
-import { LogOut, Settings, User as UserIcon } from "lucide-react";
+import { ClipboardCheck, LogOut, Settings, User as UserIcon } from "lucide-react";
 
 import { signOutAction } from "@/lib/actions/auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,14 +28,19 @@ export function Header({
   email: string | null;
 }) {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background px-4 md:px-6">
-      <div className="font-semibold md:hidden">WorkLedger</div>
+    <header className="glass sticky top-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0 items-center justify-between border-b border-black/[0.06] px-4 pt-[env(safe-area-inset-top)] md:px-6">
+      <Link href="/dashboard" className="flex items-center gap-2 font-semibold tracking-tight md:hidden">
+        <span className="flex size-7 items-center justify-center rounded-[8px] bg-primary text-primary-foreground">
+          <ClipboardCheck className="size-4" />
+        </span>
+        WorkLedger
+      </Link>
       <div className="hidden md:block" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="rounded-full">
             <Avatar className="size-8">
-              <AvatarFallback>{initials(fullName, email)}</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{initials(fullName, email)}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>

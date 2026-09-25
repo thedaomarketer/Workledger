@@ -151,7 +151,7 @@ export default async function ReportsPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">Reports</h1>
         <form className="flex flex-wrap items-end gap-2" action="/reports">
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground" htmlFor="start">
@@ -162,7 +162,7 @@ export default async function ReportsPage({
               name="start"
               type="date"
               defaultValue={toDateInputValue(rangeStart)}
-              className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+              className="flex h-10 rounded-xl bg-card px-3 text-base shadow-[0_1px_2px_rgb(0_0_0/0.05)] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25 md:text-sm"
             />
           </div>
           <div className="space-y-1">
@@ -174,7 +174,7 @@ export default async function ReportsPage({
               name="end"
               type="date"
               defaultValue={toDateInputValue(rangeEnd)}
-              className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+              className="flex h-10 rounded-xl bg-card px-3 text-base shadow-[0_1px_2px_rgb(0_0_0/0.05)] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25 md:text-sm"
             />
           </div>
           <Button type="submit" variant="outline">
@@ -184,29 +184,29 @@ export default async function ReportsPage({
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="gap-1.5">
+          <CardHeader>
             <CardTitle className="text-sm font-normal text-muted-foreground">Total hours</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold tabular-nums">{formatMinutesAsHours(totals.paidMinutes)}</CardContent>
+          <CardContent className="text-[26px] leading-tight font-bold tracking-tight">{formatMinutesAsHours(totals.paidMinutes)}</CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="gap-1.5">
+          <CardHeader>
             <CardTitle className="text-sm font-normal text-muted-foreground">Overtime</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold tabular-nums">{formatMinutesAsHours(totals.overtimeMinutes)}</CardContent>
+          <CardContent className="text-[26px] leading-tight font-bold tracking-tight">{formatMinutesAsHours(totals.overtimeMinutes)}</CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="gap-1.5">
+          <CardHeader>
             <CardTitle className="text-sm font-normal text-muted-foreground">Earnings</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold tabular-nums">{formatCents(totals.earningsCents)}</CardContent>
+          <CardContent className="text-[26px] leading-tight font-bold tracking-tight">{formatCents(totals.earningsCents)}</CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="gap-1.5">
+          <CardHeader>
             <CardTitle className="text-sm font-normal text-muted-foreground">Expenses + mileage</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold tabular-nums">
+          <CardContent className="text-[26px] leading-tight font-bold tracking-tight">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: ctx.currency }).format(
               totalExpenses + totalMileage
             )}

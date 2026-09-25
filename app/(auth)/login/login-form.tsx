@@ -23,7 +23,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
-          <Link href="/reset-password" className="text-xs text-muted-foreground underline underline-offset-4">
+          <Link href="/reset-password" className="text-xs font-medium text-primary hover:underline">
             Forgot password?
           </Link>
         </div>
@@ -34,7 +34,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
           {state.error}
         </p>
       )}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending ? "Signing in..." : "Sign in"}
       </Button>
     </form>

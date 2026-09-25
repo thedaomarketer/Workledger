@@ -10,12 +10,12 @@ export function MetricCard({
   sub?: string;
 }) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="gap-1.5">
+      <CardHeader>
         <CardTitle className="text-sm font-normal text-muted-foreground">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-semibold tabular-nums">{value}</p>
+        <p className="text-[26px] leading-tight font-bold tracking-tight">{value}</p>
         {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
       </CardContent>
     </Card>

@@ -32,7 +32,7 @@ export default async function AssistantPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">AI Assistant</h1>
+      <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">AI Assistant</h1>
       <AssistantChat
         initialConversationId={conversation?.id ?? null}
         initialMessages={initialMessages}

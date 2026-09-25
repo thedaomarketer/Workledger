@@ -22,7 +22,7 @@ const FAQS = [
 export default function HelpPage() {
   return (
     <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Help</h1>
+      <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">Help</h1>
       <div className="space-y-4">
         {FAQS.map((faq) => (
           <Card key={faq.q}>

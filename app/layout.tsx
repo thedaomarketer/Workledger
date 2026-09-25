@@ -34,9 +34,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2563eb",
+  themeColor: "#f2f2f7",
   width: "device-width",
   initialScale: 1,
+  // Lets content extend under the iPhone notch/home indicator; bars pad
+  // themselves with env(safe-area-inset-*).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -47,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-full flex flex-col">
         {children}
-        <Toaster position="top-right" />
+        <Toaster position="top-center" />
         <RegisterServiceWorker />
       </body>
     </html>

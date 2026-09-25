@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-09-25 (visual analytics charts, quick-create menu added).
+Last updated: 2026-09-25 (iOS-style UI refresh, public landing page, centered quick-create button).
 
 This document describes what actually exists in the codebase today, as
 opposed to what the product spec eventually calls for. See `docs/roadmap.md`
@@ -90,8 +90,24 @@ for what's next.
   bars carry a direct value label and hover/focus tooltip, never gating a
   number behind hover alone. The existing "By job" table remains the exact
   numeric reference alongside the charts.
-- **Quick-create menu**: a floating "+" button in the mobile bottom nav
-  (matching a native app's primary action button) and a "Create" button at
+- **Landing page** (`/`): signed-out visitors get a marketing homepage
+  (hero, feature overview, privacy section, sign-up/sign-in calls to
+  action); signed-in users are redirected straight to `/dashboard`. Every
+  feature it describes is one that actually exists -- no invented stats or
+  testimonials. The phone mockup in the hero is a static illustration.
+- **iOS-style design system**: grouped-gray background with white inset
+  cards, Apple's accessible system blue/red/green (each >= 4.5:1 on white),
+  SF Pro on Apple devices (Geist elsewhere), capsule buttons with press
+  feedback, frosted-glass header/sidebar/tab bar (`glass` utility in
+  `app/globals.css`), iOS switches and segmented tabs, and dialogs that
+  present as swipe-style bottom sheets with a grabber on phones. Inputs use
+  16px text on mobile so iOS Safari doesn't auto-zoom on focus;
+  `viewport-fit=cover` + `env(safe-area-inset-*)` padding keep bars clear of
+  the notch and home indicator.
+- **Quick-create menu**: a floating "+" button in the center of the mobile
+  tab bar (an equal-width five-column grid, so it sits exactly at the
+  screen's center; Calendar moved to the More screen to keep two tabs per
+  side) and a "Create" button at
   the top of the desktop sidebar (`components/app-shell/create-menu.tsx`)
   open a sheet of shortcuts -- log a shift, add an expense, add mileage, new
   journal entry, add a job -- that deep-link to the page owning that create

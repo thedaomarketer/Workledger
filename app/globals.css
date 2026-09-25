@@ -4,30 +4,35 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --success: oklch(0.6 0.15 145);
-  --success-foreground: oklch(0.985 0 0);
-  --warning: oklch(0.75 0.17 75);
-  --warning-foreground: oklch(0.145 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /*
+   * iOS-style system palette: grouped gray background with white "inset"
+   * cards on top, Apple's accessible blue/red/green (each clears WCAG AA
+   * 4.5:1 against white -- plain #007aff only reaches 4.0:1).
+   */
+  --radius: 0.875rem;
+  --background: #f2f2f7;
+  --foreground: #1c1c1e;
+  --card: #ffffff;
+  --card-foreground: #1c1c1e;
+  --popover: #ffffff;
+  --popover-foreground: #1c1c1e;
+  --primary: #0071e3;
+  --primary-foreground: #ffffff;
+  --secondary: #e9e9ee;
+  --secondary-foreground: #1c1c1e;
+  --muted: #eeeef3;
+  --muted-foreground: #6e6e73;
+  --accent: #ececf1;
+  --accent-foreground: #1c1c1e;
+  --destructive: #d70015;
+  --destructive-foreground: #ffffff;
+  --success: #248a3d;
+  --success-foreground: #ffffff;
+  --warning: #ff9500;
+  --warning-foreground: #1c1c1e;
+  --border: #e3e3e8;
+  --input: #d1d1d6;
+  --ring: #0071e3;
   /*
    * Categorical chart palette (dataviz skill's validated default order):
    * blue, orange, aqua, yellow, magenta, green, violet, red. Fixed order is
@@ -122,8 +127,17 @@
   --color-chart-surface: var(--chart-surface);
   --color-chart-grid: var(--chart-grid);
   --color-chart-axis: var(--chart-axis);
-  --font-sans: var(--font-geist-sans);
+  /* SF Pro on Apple devices, Geist everywhere else. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-geist-sans), system-ui,
+    sans-serif;
   --font-mono: var(--font-geist-mono);
+}
+
+/* Frosted "material" for bars floating over scrolling content. */
+@utility glass {
+  background-color: rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
 }
 
 @layer base {
@@ -132,5 +146,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
   }
 }

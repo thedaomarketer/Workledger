@@ -17,13 +17,17 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  /**
+   * Shown in the mobile tab bar. Keep exactly three flagged: with the "More"
+   * tab that makes four, split two either side of the centered "+" button.
+   */
   mobile?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, mobile: true },
   { href: "/time", label: "Time", icon: Clock, mobile: true },
-  { href: "/calendar", label: "Calendar", icon: CalendarDays, mobile: true },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/journal", label: "Journal", icon: BookText },
   { href: "/expenses", label: "Expenses", icon: Receipt },

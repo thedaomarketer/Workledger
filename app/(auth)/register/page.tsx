@@ -13,14 +13,14 @@ export default function RegisterPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Create your account</CardTitle>
+        <CardTitle className="text-2xl font-bold">Create your account</CardTitle>
         <CardDescription>Start your complete record of work.</CardDescription>
       </CardHeader>
       <CardContent>
         <RegisterForm />
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-foreground underline underline-offset-4">
+          <Link href="/login" className="font-semibold text-primary hover:underline">
             Sign in
           </Link>
         </p>

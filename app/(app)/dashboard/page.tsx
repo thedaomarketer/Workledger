@@ -29,7 +29,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">
           {greeting}
           {firstName ? `, ${firstName}` : ""}
         </h1>

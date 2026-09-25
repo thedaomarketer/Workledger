@@ -2,24 +2,26 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Briefcase, Car, Clock, Plus, Receipt, BookText, type LucideIcon } from "lucide-react";
+import { BookText, Briefcase, Car, ChevronRight, Clock, Plus, Receipt, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 interface CreateAction {
   href: string;
   label: string;
   description: string;
   icon: LucideIcon;
+  /** Literal Tailwind class for the icon tile (iOS Settings-style). */
+  tileClassName: string;
 }
 
 const CREATE_ACTIONS: CreateAction[] = [
-  { href: "/time?new=shift", label: "Log a shift", description: "Add a completed shift manually", icon: Clock },
-  { href: "/expenses?new=1", label: "Add expense", description: "Record a work-related cost", icon: Receipt },
-  { href: "/mileage?new=1", label: "Add mileage", description: "Log a work trip", icon: Car },
-  { href: "/journal?new=1", label: "New journal entry", description: "Note a task, issue, or instruction", icon: BookText },
-  { href: "/jobs?new=1", label: "Add a job", description: "Track time for a new employer or gig", icon: Briefcase },
+  { href: "/time?new=shift", label: "Log a shift", description: "Add a completed shift manually", icon: Clock, tileClassName: "bg-[#0071e3]" },
+  { href: "/expenses?new=1", label: "Add expense", description: "Record a work-related cost", icon: Receipt, tileClassName: "bg-[#248a3d]" },
+  { href: "/mileage?new=1", label: "Add mileage", description: "Log a work trip", icon: Car, tileClassName: "bg-[#c93400]" },
+  { href: "/journal?new=1", label: "New journal entry", description: "Note a task, issue, or instruction", icon: BookText, tileClassName: "bg-[#8944ab]" },
+  { href: "/jobs?new=1", label: "Add a job", description: "Track time for a new employer or gig", icon: Briefcase, tileClassName: "bg-[#5856d6]" },
 ];
 
 /**
@@ -39,34 +41,41 @@ export function CreateMenu({ variant }: { variant: "fab" | "button" }) {
           <button
             type="button"
             aria-label="Create"
-            className="relative -top-5 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-95"
+            className="flex size-14 -translate-y-3 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_20px_rgb(0_113_227/0.4)] ring-4 ring-background transition-transform duration-150 active:scale-90"
           >
-            <Plus className="size-6" />
+            <Plus className="size-7" strokeWidth={2.5} />
           </button>
         ) : (
-          <Button className="w-full justify-start gap-2">
+          <Button className="w-full">
             <Plus /> Create
           </Button>
         )}
       </SheetTrigger>
-      <SheetContent side="bottom" className="rounded-t-xl pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <SheetHeader>
-          <SheetTitle>Create</SheetTitle>
+      <SheetContent side="bottom" className="pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <SheetHeader className="px-5 pt-1 pb-0">
+          <SheetTitle className="text-xl font-bold tracking-tight">Create</SheetTitle>
+          <SheetDescription>What would you like to record?</SheetDescription>
         </SheetHeader>
-        <div className="flex flex-col gap-1 px-4 pb-2">
-          {CREATE_ACTIONS.map((action) => (
+        <div className="mx-4 overflow-hidden rounded-2xl bg-muted">
+          {CREATE_ACTIONS.map((action, i) => (
             <Link
               key={action.href}
               href={action.href}
               onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-accent"
+              className="flex min-h-14 items-center gap-3 pl-3.5 transition-colors hover:bg-black/[0.03] active:bg-black/5"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent">
-                <action.icon className="size-5" />
+              <span className={`flex size-8 shrink-0 items-center justify-center rounded-[9px] text-white ${action.tileClassName}`}>
+                <action.icon className="size-[18px]" />
               </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-medium">{action.label}</span>
-                <span className="block truncate text-xs text-muted-foreground">{action.description}</span>
+              {/* Inset separator: starts after the icon tile, like iOS grouped lists. */}
+              <span
+                className={`flex min-w-0 flex-1 items-center gap-2 self-stretch py-2.5 pr-3.5 ${i > 0 ? "border-t border-black/[0.06]" : ""}`}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-medium">{action.label}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{action.description}</span>
+                </span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" />
               </span>
             </Link>
           ))}

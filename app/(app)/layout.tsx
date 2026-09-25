@@ -28,7 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex min-w-0 flex-1 flex-col">
         <Header fullName={profile?.full_name ?? null} email={profile?.email ?? user.email ?? null} />
         <InstallPrompt />
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <main className="flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-0">
           <div className="mx-auto w-full max-w-6xl p-4 md:p-6">{children}</div>
         </main>
       </div>

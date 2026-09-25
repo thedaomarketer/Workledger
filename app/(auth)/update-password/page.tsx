@@ -11,7 +11,7 @@ export default function UpdatePasswordPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Choose a new password</CardTitle>
+        <CardTitle className="text-2xl font-bold">Choose a new password</CardTitle>
         <CardDescription>Enter and confirm your new password.</CardDescription>
       </CardHeader>
       <CardContent>

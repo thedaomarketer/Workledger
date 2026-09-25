@@ -2,7 +2,7 @@
 // loads and a graceful offline fallback. Never caches API responses, auth
 // routes, or dynamic pages -- work records must always reflect the live
 // database, never a stale cached copy.
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const SHELL_CACHE = `workledger-shell-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline";
 

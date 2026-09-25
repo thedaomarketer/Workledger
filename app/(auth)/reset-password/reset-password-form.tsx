@@ -32,7 +32,7 @@ export function ResetPasswordForm() {
           {state.error}
         </p>
       )}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending ? "Sending..." : "Send reset link"}
       </Button>
     </form>

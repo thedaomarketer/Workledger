@@ -22,7 +22,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+      <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">Settings</h1>
 
       <ProfileForm profile={profile} />
       <PreferencesForm settings={settings} />

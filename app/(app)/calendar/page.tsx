@@ -75,7 +75,7 @@ export default async function CalendarPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">
           {start.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: ctx.timezone })}
         </h1>
         <div className="flex gap-2">

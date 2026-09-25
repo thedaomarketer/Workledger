@@ -151,6 +151,19 @@ swatches throughout the dashboard/payday UI), charts reuse *that* instead
 of the categorical palette, for one consistent color-to-job mapping across
 the whole app rather than two competing ones.
 
+## Visual design
+
+The look follows current iOS conventions, implemented as token and
+primitive changes rather than per-page styling: `app/globals.css` holds the
+palette (grouped `#f2f2f7` background, white cards, Apple's accessible
+`#0071e3` blue -- plain `#007aff` fails WCAG AA for white button text), the
+system font stack, and the `glass` frosted-material utility; the
+`components/ui/*` primitives carry the shapes (capsule buttons, 16px
+radius cards, filled 44px inputs, 51x31 switches, segmented tabs, bottom
+sheet dialogs on phones). Pages mostly inherit the look for free. The app
+is light-only today -- `user_settings.dark_mode` exists but nothing applies
+the `.dark` class yet.
+
 ## Why the shadcn CLI wasn't used
 
 The shadcn CLI's `init`/`add` commands fetch component source from

@@ -70,7 +70,7 @@ export function CreateExpenseDialog({ jobs }: { jobs: { id: string; name: string
           <div className="space-y-2">
             <Label htmlFor={`${id}-category`}>Category</Label>
             <Select name="category" defaultValue="other">
-              <SelectTrigger className="w-full" id={`${id}-category`}>
+              <SelectTrigger className="w-full capitalize" id={`${id}-category`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

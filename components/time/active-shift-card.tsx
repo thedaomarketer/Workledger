@@ -65,15 +65,15 @@ export function ActiveShiftCard({ shift, timezone }: { shift: ActiveShiftData; t
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-2xl font-semibold tabular-nums">{formatTime(shift.actual_start, timezone)}</p>
+            <p className="text-[26px] leading-tight font-bold tracking-tight tabular-nums">{formatTime(shift.actual_start, timezone)}</p>
             <p className="text-xs text-muted-foreground">Started</p>
           </div>
           <div>
-            <p className="text-2xl font-semibold tabular-nums">{formatHms(elapsedSeconds)}</p>
+            <p className="text-[26px] leading-tight font-bold tracking-tight tabular-nums">{formatHms(elapsedSeconds)}</p>
             <p className="text-xs text-muted-foreground">Elapsed</p>
           </div>
           <div>
-            <p className="text-2xl font-semibold tabular-nums">{formatHms(paidMinutes * 60)}</p>
+            <p className="text-[26px] leading-tight font-bold tracking-tight tabular-nums">{formatHms(paidMinutes * 60)}</p>
             <p className="text-xs text-muted-foreground">Paid</p>
           </div>
         </div>
