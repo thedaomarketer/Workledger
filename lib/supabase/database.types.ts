@@ -56,6 +56,7 @@ export interface Database {
           currency: string;
           date_format: string;
           default_hourly_rate: number | null;
+          locale: "en" | "fr" | "es";
           created_at: string;
           updated_at: string;
         };

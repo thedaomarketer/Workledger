@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
+import { getI18n } from "@/lib/i18n/server";
+import { validationMessage } from "@/lib/i18n/validation";
 import { logAudit } from "@/lib/audit/log";
 import { mileageEntrySchema } from "@/lib/validation/mileage";
 
@@ -14,6 +16,7 @@ export async function createMileageEntryAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = mileageEntrySchema.safeParse({
     jobId: formData.get("jobId"),
     date: formData.get("date"),
@@ -26,14 +29,14 @@ export async function createMileageEntryAction(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid mileage entry." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const reimbursement = Math.round(parsed.data.distance * parsed.data.rate * 100) / 100;
 
@@ -55,7 +58,7 @@ export async function createMileageEntryAction(
     .single();
 
   if (error) {
-    return { error: "We couldn't save this trip. Please try again." };
+    return { error: m.errors.tripSaveFailed };
   }
 
   await logAudit({ userId: user.id, entityType: "mileage_entry", entityId: data.id, action: "created" });
@@ -66,11 +69,12 @@ export async function createMileageEntryAction(
 }
 
 export async function deleteMileageEntryAction(entryId: string): Promise<ActionResult> {
+  const { m } = await getI18n();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { data: before } = await supabase
     .from("mileage_entries")
@@ -80,7 +84,7 @@ export async function deleteMileageEntryAction(entryId: string): Promise<ActionR
     .maybeSingle();
 
   const { error } = await supabase.from("mileage_entries").delete().eq("id", entryId).eq("user_id", user.id);
-  if (error) return { error: "We couldn't delete this trip." };
+  if (error) return { error: m.errors.tripDeleteFailed };
 
   await logAudit({
     userId: user.id,

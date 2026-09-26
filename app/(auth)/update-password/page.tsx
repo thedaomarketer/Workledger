@@ -5,14 +5,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getI18n } from "@/lib/i18n/server";
 import { UpdatePasswordForm } from "./update-password-form";
 
-export default function UpdatePasswordPage() {
+export default async function UpdatePasswordPage() {
+  const { m } = await getI18n();
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl font-bold">Choose a new password</CardTitle>
-        <CardDescription>Enter and confirm your new password.</CardDescription>
+        <CardTitle className="text-2xl font-bold">{m.auth.newPasswordTitle}</CardTitle>
+        <CardDescription>{m.auth.newPasswordSubtitle}</CardDescription>
       </CardHeader>
       <CardContent>
         <UpdatePasswordForm />

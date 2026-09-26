@@ -24,6 +24,9 @@ describe("money helpers", () => {
   });
 
   it("formats cents as currency", () => {
-    expect(formatCents(104750)).toBe("$1,047.50");
+    expect(formatCents(104750, "USD", "en-US")).toBe("$1,047.50");
+    // French (Canada) puts the symbol after, uses a comma decimal and a narrow no-break space for thousands.
+    expect(formatCents(104750, "CAD", "fr-CA")).toBe("1\u00a0047,50\u00a0$");
+    expect(formatCents(104750, "USD", "es-US")).toBe("$1,047.50");
   });
 });

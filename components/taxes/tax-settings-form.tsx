@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { updateTaxSettingsAction, type ActionResult } from "@/lib/actions/settings";
 import { CANADA_PROVINCE_OPTIONS, US_CITY_OPTIONS, US_STATE_OPTIONS } from "@/lib/calculations/tax";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,28 +24,34 @@ export function TaxSettingsForm({
 }: {
   settings: { tax_country: "CA" | "US" | null; tax_region: string | null; tax_city: string | null };
 }) {
+  const { m } = useI18n();
   const [state, formAction, pending] = useActionState(updateTaxSettingsAction, initialState);
   const [country, setCountry] = useState<"CA" | "US" | "">(settings.tax_country ?? "");
   const [region, setRegion] = useState(settings.tax_region ?? "");
 
   useEffect(() => {
-    if (state.success) toast.success("Tax settings saved.");
-  }, [state]);
+    if (state.success) toast.success(m.taxes.jurisdictionSaved);
+  }, [state, m]);
 
   const regionOptions = country === "CA" ? CANADA_PROVINCE_OPTIONS : country === "US" ? US_STATE_OPTIONS : [];
-  const regionLabel = country === "CA" ? "Province" : "State";
+  const regionLabel = country === "CA" ? m.taxes.province : m.taxes.state;
+  const regionPlaceholder = !country
+    ? m.taxes.chooseCountryFirst
+    : country === "CA"
+      ? m.taxes.chooseProvince
+      : m.taxes.chooseState;
   const cityOptions = country === "US" ? US_CITY_OPTIONS.filter((c) => c.state === region) : [];
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Tax jurisdiction</CardTitle>
+        <CardTitle className="text-base">{m.taxes.jurisdiction}</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="taxCountry">Country</Label>
+              <Label htmlFor="taxCountry">{m.taxes.country}</Label>
               <Select
                 name="taxCountry"
                 defaultValue={settings.tax_country ?? undefined}
@@ -54,11 +61,11 @@ export function TaxSettingsForm({
                 }}
               >
                 <SelectTrigger className="w-full" id="taxCountry">
-                  <SelectValue placeholder="Not set" />
+                  <SelectValue placeholder={m.common.notSet} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="CA">Canada</SelectItem>
-                  <SelectItem value="US">United States</SelectItem>
+                  <SelectItem value="CA">{m.taxes.canada}</SelectItem>
+                  <SelectItem value="US">{m.taxes.unitedStates}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -72,7 +79,7 @@ export function TaxSettingsForm({
                 onValueChange={setRegion}
               >
                 <SelectTrigger className="w-full" id="taxRegion">
-                  <SelectValue placeholder={country ? `Choose a ${regionLabel.toLowerCase()}` : "Choose a country first"} />
+                  <SelectValue placeholder={regionPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {regionOptions.map((opt) => (
@@ -84,10 +91,10 @@ export function TaxSettingsForm({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="taxCity">City (optional)</Label>
+              <Label htmlFor="taxCity">{m.taxes.cityOptional}</Label>
               <Select key={`${country}-${region}`} name="taxCity" defaultValue={settings.tax_city ?? undefined} disabled={cityOptions.length === 0}>
                 <SelectTrigger className="w-full" id="taxCity">
-                  <SelectValue placeholder={cityOptions.length ? "None" : "Not available"} />
+                  <SelectValue placeholder={cityOptions.length ? m.common.none : m.taxes.notAvailable} />
                 </SelectTrigger>
                 <SelectContent>
                   {cityOptions.map((opt) => (
@@ -102,7 +109,7 @@ export function TaxSettingsForm({
 
           {state.error && <p className="text-sm text-destructive">{state.error}</p>}
           <Button type="submit" disabled={pending}>
-            {pending ? "Saving..." : "Save tax jurisdiction"}
+            {pending ? m.common.saving : m.taxes.saveJurisdiction}
           </Button>
         </form>
       </CardContent>

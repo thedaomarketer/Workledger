@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { requestPasswordResetAction, type ActionResult } from "@/lib/actions/auth";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,12 +12,13 @@ const initialState: ActionResult = {};
 
 export function ResetPasswordForm() {
   const [state, formAction, pending] = useActionState(requestPasswordResetAction, initialState);
+  const { m } = useI18n();
   const submitted = state !== initialState && !state.error;
 
   if (submitted) {
     return (
-      <p className="text-sm text-muted-foreground">
-        If an account exists for that email, a reset link is on its way.
+      <p role="status" className="text-sm text-muted-foreground">
+        {m.auth.resetSent}
       </p>
     );
   }
@@ -24,7 +26,7 @@ export function ResetPasswordForm() {
   return (
     <form action={formAction} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{m.auth.email}</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </div>
       {state.error && (
@@ -33,7 +35,7 @@ export function ResetPasswordForm() {
         </p>
       )}
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
-        {pending ? "Sending..." : "Send reset link"}
+        {pending ? m.auth.sending : m.auth.sendResetLink}
       </Button>
     </form>
   );

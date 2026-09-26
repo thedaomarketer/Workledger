@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireUserContext } from "@/lib/data/context";
+import { getI18n } from "@/lib/i18n/server";
 import { AssistantChat, type ChatMessage } from "@/components/assistant/chat";
 
 export default async function AssistantPage() {
-  const ctx = await requireUserContext();
+  const [ctx, { m }] = await Promise.all([requireUserContext(), getI18n()]);
   if (!ctx) return null;
 
   const supabase = await createClient();
@@ -32,7 +33,7 @@ export default async function AssistantPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">AI Assistant</h1>
+      <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">{m.assistant.title}</h1>
       <AssistantChat
         initialConversationId={conversation?.id ?? null}
         initialMessages={initialMessages}

@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
+import { getI18n } from "@/lib/i18n/server";
+import { validationMessage } from "@/lib/i18n/validation";
 import { logAudit } from "@/lib/audit/log";
+import { requireUserContext } from "@/lib/data/context";
+import { localDateTimeToInstant } from "@/lib/calculations";
 import { journalEntrySchema } from "@/lib/validation/journal";
 import type { EntryType } from "@/lib/supabase/database.types";
 
@@ -15,6 +19,7 @@ export async function createJournalEntryAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = journalEntrySchema.safeParse({
     entryType: formData.get("entryType"),
     jobId: formData.get("jobId"),
@@ -24,15 +29,18 @@ export async function createJournalEntryAction(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid entry." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  const ctx = await requireUserContext();
+  if (!ctx) return { error: m.errors.mustSignIn };
+  const user = { id: ctx.userId };
 
+  // "yyyy-mm-ddThh:mm" from a datetime-local input, in the user's zone.
+  const [eventDate, eventTime] = parsed.data.eventAt.split("T");
+  const eventAt = localDateTimeToInstant(eventDate, eventTime.slice(0, 5), ctx.timezone);
+
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("journal_entries")
     .insert({
@@ -41,13 +49,13 @@ export async function createJournalEntryAction(
       entry_type: parsed.data.entryType as EntryType,
       title: parsed.data.title || null,
       content: parsed.data.content || null,
-      event_at: new Date(parsed.data.eventAt).toISOString(),
+      event_at: eventAt.toISOString(),
     })
     .select("id")
     .single();
 
   if (error) {
-    return { error: "We couldn't save this entry. Please try again." };
+    return { error: m.errors.entrySaveFailed };
   }
 
   await logAudit({ userId: user.id, entityType: "journal_entry", entityId: data.id, action: "created" });
@@ -58,11 +66,12 @@ export async function createJournalEntryAction(
 }
 
 export async function deleteJournalEntryAction(entryId: string): Promise<ActionResult> {
+  const { m } = await getI18n();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { data: before } = await supabase
     .from("journal_entries")
@@ -72,7 +81,7 @@ export async function deleteJournalEntryAction(entryId: string): Promise<ActionR
     .maybeSingle();
 
   const { error } = await supabase.from("journal_entries").delete().eq("id", entryId).eq("user_id", user.id);
-  if (error) return { error: "We couldn't delete this entry." };
+  if (error) return { error: m.errors.entryDeleteFailed };
 
   await logAudit({
     userId: user.id,

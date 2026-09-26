@@ -5,6 +5,8 @@ import { Plus } from "lucide-react";
 
 import { createExpenseAction, type ActionResult } from "@/lib/actions/expenses";
 import { useAutoOpen } from "@/hooks/use-auto-open";
+import { localDateString } from "@/lib/calculations/local-time";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,11 +31,8 @@ const initialState: ActionResult = {};
 
 const CATEGORIES = ["meals", "transport", "supplies", "equipment", "lodging", "other"] as const;
 
-function todayLocal(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-export function CreateExpenseDialog({ jobs }: { jobs: { id: string; name: string }[] }) {
+export function CreateExpenseDialog({ jobs, timezone }: { jobs: { id: string; name: string }[]; timezone: string }) {
+  const { m } = useI18n();
   const [open, setOpen] = useAutoOpen("1");
   const [state, formAction, pending] = useActionState(createExpenseAction, initialState);
   const id = useId();
@@ -49,34 +48,34 @@ export function CreateExpenseDialog({ jobs }: { jobs: { id: string; name: string
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus /> Add expense
+          <Plus /> {m.expenses.addExpense}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form action={formAction} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>Add an expense</DialogTitle>
+            <DialogTitle>{m.expenses.addExpenseTitle}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor={`${id}-amount`}>Amount</Label>
+              <Label htmlFor={`${id}-amount`}>{m.common.amount}</Label>
               <Input id={`${id}-amount`} name="amount" type="number" min="0" step="0.01" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor={`${id}-expenseDate`}>Date</Label>
-              <Input id={`${id}-expenseDate`} name="expenseDate" type="date" defaultValue={todayLocal()} required />
+              <Label htmlFor={`${id}-expenseDate`}>{m.common.date}</Label>
+              <Input id={`${id}-expenseDate`} name="expenseDate" type="date" defaultValue={localDateString(new Date(), timezone)} required />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${id}-category`}>Category</Label>
+            <Label htmlFor={`${id}-category`}>{m.common.category}</Label>
             <Select name="category" defaultValue="other">
-              <SelectTrigger className="w-full capitalize" id={`${id}-category`}>
+              <SelectTrigger className="w-full" id={`${id}-category`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {CATEGORIES.map((c) => (
-                  <SelectItem key={c} value={c} className="capitalize">
-                    {c}
+                  <SelectItem key={c} value={c}>
+                    {m.expenses.categories[c]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -84,10 +83,10 @@ export function CreateExpenseDialog({ jobs }: { jobs: { id: string; name: string
           </div>
           {jobs.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor={`${id}-jobId`}>Job (optional)</Label>
+              <Label htmlFor={`${id}-jobId`}>{m.common.jobOptional}</Label>
               <Select name="jobId">
                 <SelectTrigger className="w-full" id={`${id}-jobId`}>
-                  <SelectValue placeholder="None" />
+                  <SelectValue placeholder={m.common.none} />
                 </SelectTrigger>
                 <SelectContent>
                   {jobs.map((job) => (
@@ -100,13 +99,13 @@ export function CreateExpenseDialog({ jobs }: { jobs: { id: string; name: string
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor={`${id}-description`}>Description</Label>
+            <Label htmlFor={`${id}-description`}>{m.common.description}</Label>
             <Textarea id={`${id}-description`} name="description" rows={2} />
           </div>
           {state.error && <p className="text-sm text-destructive">{state.error}</p>}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving..." : "Save expense"}
+              {pending ? m.common.saving : m.expenses.saveExpense}
             </Button>
           </DialogFooter>
         </form>

@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireUserContext } from "@/lib/data/context";
+import { getI18n } from "@/lib/i18n/server";
 import { CreateMileageDialog } from "@/components/mileage/create-mileage-dialog";
 import { MileageList } from "@/components/mileage/mileage-list";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default async function MileagePage() {
-  const ctx = await requireUserContext();
+  const [ctx, { m }] = await Promise.all([requireUserContext(), getI18n()]);
   if (!ctx) return null;
 
   const supabase = await createClient();
@@ -22,8 +23,8 @@ export default async function MileagePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">Mileage</h1>
-        <CreateMileageDialog jobs={jobs ?? []} />
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">{m.mileage.title}</h1>
+        <CreateMileageDialog jobs={jobs ?? []} timezone={ctx.timezone} />
       </div>
       <Card>
         <CardContent className="px-0 pt-6 sm:px-6">

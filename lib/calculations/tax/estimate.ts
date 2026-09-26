@@ -48,8 +48,13 @@ function estimateCanadianTax(grossAnnualIncomeCents: number, provinceCode: strin
   const provincialTax = calculateMarginalTax(provincialTaxable, province.brackets);
 
   const incomeTaxLines: TaxLine[] = [
-    { label: "Federal income tax", amountCents: federalTax },
-    { label: `${province.name} income tax`, amountCents: provincialTax },
+    { kind: "federalIncomeTax", label: "Federal income tax", amountCents: federalTax },
+    {
+      kind: "provincialIncomeTax",
+      label: `${province.name} income tax`,
+      place: province.name,
+      amountCents: provincialTax,
+    },
   ];
 
   return finalize(
@@ -72,7 +77,9 @@ function estimateUsTax(
   const federalTaxable = Math.max(0, grossAnnualIncomeCents - US_STANDARD_DEDUCTION_SINGLE_CENTS);
   const federalTax = calculateMarginalTax(federalTaxable, US_FEDERAL_BRACKETS_SINGLE);
 
-  const incomeTaxLines: TaxLine[] = [{ label: "Federal income tax", amountCents: federalTax }];
+  const incomeTaxLines: TaxLine[] = [
+    { kind: "federalIncomeTax", label: "Federal income tax", amountCents: federalTax },
+  ];
 
   let stateTax = 0;
   if (state.rule.type === "flat") {
@@ -81,7 +88,12 @@ function estimateUsTax(
     stateTax = calculateMarginalTax(grossAnnualIncomeCents, state.rule.brackets);
   }
   if (state.rule.type !== "none") {
-    incomeTaxLines.push({ label: `${state.name} state income tax`, amountCents: stateTax });
+    incomeTaxLines.push({
+      kind: "stateIncomeTax",
+      label: `${state.name} state income tax`,
+      place: state.name,
+      amountCents: stateTax,
+    });
   }
 
   if (cityCode) {
@@ -91,7 +103,12 @@ function estimateUsTax(
         city.rule.type === "flat"
           ? calculateCappedFlatDeduction(grossAnnualIncomeCents, city.rule.rate)
           : calculateMarginalTax(grossAnnualIncomeCents, city.rule.brackets);
-      incomeTaxLines.push({ label: `${city.name} local tax`, amountCents: cityTax });
+      incomeTaxLines.push({
+        kind: "localTax",
+        label: `${city.name} local tax`,
+        place: city.name,
+        amountCents: cityTax,
+      });
     }
   }
 

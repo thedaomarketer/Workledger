@@ -5,6 +5,7 @@ import { MoreVertical, Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteJobAction, setJobActiveAction } from "@/lib/actions/jobs";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,12 +25,13 @@ import {
 export function JobActionsMenu({ jobId, isActive }: { jobId: string; isActive: boolean }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { m } = useI18n();
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label={m.jobs.moreActions}>
             <MoreVertical className="size-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -38,37 +40,34 @@ export function JobActionsMenu({ jobId, isActive }: { jobId: string; isActive: b
             onSelect={() =>
               startTransition(async () => {
                 await setJobActiveAction(jobId, !isActive);
-                toast.success(isActive ? "Job archived." : "Job restored.");
+                toast.success(isActive ? m.jobs.archivedToast : m.jobs.restoredToast);
               })
             }
           >
             {isActive ? (
               <>
-                <Archive /> Archive
+                <Archive /> {m.jobs.archive}
               </>
             ) : (
               <>
-                <ArchiveRestore /> Restore
+                <ArchiveRestore /> {m.jobs.restore}
               </>
             )}
           </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>
-            <Trash2 /> Delete
+            <Trash2 /> {m.common.delete}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete this job?</DialogTitle>
-            <DialogDescription>
-              This permanently deletes the job. If it has recorded time or other records attached, delete
-              or move those first, or archive the job instead.
-            </DialogDescription>
+            <DialogTitle>{m.jobs.deleteTitle}</DialogTitle>
+            <DialogDescription>{m.jobs.deleteBody}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              Cancel
+              {m.common.cancel}
             </Button>
             <Button
               variant="destructive"
@@ -79,13 +78,13 @@ export function JobActionsMenu({ jobId, isActive }: { jobId: string; isActive: b
                   if (result.error) {
                     toast.error(result.error);
                   } else {
-                    toast.success("Job deleted.");
+                    toast.success(m.jobs.deletedToast);
                   }
                   setConfirmOpen(false);
                 })
               }
             >
-              Delete
+              {m.common.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

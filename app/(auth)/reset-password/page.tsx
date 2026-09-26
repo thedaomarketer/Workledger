@@ -5,16 +5,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getI18n } from "@/lib/i18n/server";
 import { ResetPasswordForm } from "./reset-password-form";
 
-export default function ResetPasswordPage() {
+export default async function ResetPasswordPage() {
+  const { m } = await getI18n();
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl font-bold">Reset your password</CardTitle>
-        <CardDescription>
-          We&apos;ll email you a link to choose a new password.
-        </CardDescription>
+        <CardTitle className="text-2xl font-bold">{m.auth.resetTitle}</CardTitle>
+        <CardDescription>{m.auth.resetSubtitle}</CardDescription>
       </CardHeader>
       <CardContent>
         <ResetPasswordForm />

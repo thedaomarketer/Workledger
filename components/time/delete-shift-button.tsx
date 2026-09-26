@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteShiftAction } from "@/lib/actions/shifts";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,21 +19,22 @@ import {
 export function DeleteShiftButton({ shiftId }: { shiftId: string }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { m } = useI18n();
 
   return (
     <>
-      <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
+      <Button variant="ghost" size="icon" aria-label={m.time.deleteShiftLabel} onClick={() => setOpen(true)}>
         <Trash2 className="size-4" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete this shift?</DialogTitle>
-            <DialogDescription>This removes it from your history and reports. This can&apos;t be undone.</DialogDescription>
+            <DialogTitle>{m.time.deleteShiftTitle}</DialogTitle>
+            <DialogDescription>{m.time.deleteShiftBody}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+              {m.common.cancel}
             </Button>
             <Button
               variant="destructive"
@@ -41,12 +43,12 @@ export function DeleteShiftButton({ shiftId }: { shiftId: string }) {
                 startTransition(async () => {
                   const result = await deleteShiftAction(shiftId);
                   if (result.error) toast.error(result.error);
-                  else toast.success("Shift deleted.");
+                  else toast.success(m.time.shiftDeleted);
                   setOpen(false);
                 })
               }
             >
-              Delete
+              {m.common.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

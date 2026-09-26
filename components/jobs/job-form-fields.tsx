@@ -2,6 +2,8 @@
 
 import { useId } from "react";
 
+import { useI18n } from "@/lib/i18n/client";
+import { fmt } from "@/lib/i18n/config";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,12 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const PAY_FREQUENCY_OPTIONS = [
-  { value: "weekly", label: "Weekly" },
-  { value: "biweekly", label: "Biweekly" },
-  { value: "semi_monthly", label: "Semi-monthly" },
-  { value: "monthly", label: "Monthly" },
-];
+const PAY_FREQUENCIES = ["weekly", "biweekly", "semi_monthly", "monthly"] as const;
 
 const PRESET_COLORS = [
   "#2563eb",
@@ -51,27 +48,29 @@ export function JobFormFields({
   };
 }) {
   const id = useId();
+  const { m } = useI18n();
+  const f = m.jobs.form;
   const dv = defaultValues ?? {};
 
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor={`${id}-name`}>Job name *</Label>
-          <Input id={`${id}-name`} name="name" defaultValue={dv.name} placeholder="Maple Restaurant" required />
+          <Label htmlFor={`${id}-name`}>{f.name}</Label>
+          <Input id={`${id}-name`} name="name" defaultValue={dv.name} placeholder={f.namePlaceholder} required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor={`${id}-jobTitle`}>Your title</Label>
-          <Input id={`${id}-jobTitle`} name="jobTitle" defaultValue={dv.jobTitle ?? ""} placeholder="Chef" />
+          <Label htmlFor={`${id}-jobTitle`}>{f.jobTitle}</Label>
+          <Input id={`${id}-jobTitle`} name="jobTitle" defaultValue={dv.jobTitle ?? ""} placeholder={f.jobTitlePlaceholder} />
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${id}-companyName`}>Company / employer</Label>
+        <Label htmlFor={`${id}-companyName`}>{f.company}</Label>
         <Input id={`${id}-companyName`} name="companyName" defaultValue={dv.companyName ?? ""} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor={`${id}-hourlyRate`}>Hourly rate</Label>
+          <Label htmlFor={`${id}-hourlyRate`}>{f.hourlyRate}</Label>
           <Input
             id={`${id}-hourlyRate`}
             name="hourlyRate"
@@ -83,7 +82,7 @@ export function JobFormFields({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor={`${id}-overtimeRate`}>Overtime rate</Label>
+          <Label htmlFor={`${id}-overtimeRate`}>{f.overtimeRate}</Label>
           <Input
             id={`${id}-overtimeRate`}
             name="overtimeRate"
@@ -96,7 +95,7 @@ export function JobFormFields({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${id}-overtimeThresholdHours`}>Overtime after (hours/week)</Label>
+        <Label htmlFor={`${id}-overtimeThresholdHours`}>{f.overtimeAfter}</Label>
         <Input
           id={`${id}-overtimeThresholdHours`}
           name="overtimeThresholdHours"
@@ -108,28 +107,31 @@ export function JobFormFields({
           }
           placeholder="44"
         />
-        <p className="text-xs text-muted-foreground">Leave blank to disable overtime for this job.</p>
+        <p className="text-xs text-muted-foreground">{f.overtimeHint}</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor={`${id}-startDate`}>Start date</Label>
+          <Label htmlFor={`${id}-startDate`}>{f.startDate}</Label>
           <Input id={`${id}-startDate`} name="startDate" type="date" defaultValue={dv.startDate ?? ""} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor={`${id}-endDate`}>End date</Label>
+          <Label htmlFor={`${id}-endDate`}>{f.endDate}</Label>
           <Input id={`${id}-endDate`} name="endDate" type="date" defaultValue={dv.endDate ?? ""} />
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${id}-color`}>Color</Label>
-        <div className="flex flex-wrap items-center gap-2">
-          {PRESET_COLORS.map((color) => (
+        <p id={`${id}-color`} className="text-sm leading-none font-medium">
+          {f.color}
+        </p>
+        <div role="radiogroup" aria-labelledby={`${id}-color`} className="flex flex-wrap items-center gap-2">
+          {PRESET_COLORS.map((color, i) => (
             <label key={color} className="cursor-pointer">
               <input
                 type="radio"
                 name="color"
                 value={color}
                 defaultChecked={(dv.color ?? PRESET_COLORS[0]) === color}
+                aria-label={fmt(f.colorOption, { n: i + 1 })}
                 className="peer sr-only"
               />
               <span
@@ -141,28 +143,28 @@ export function JobFormFields({
         </div>
       </div>
       <div className="space-y-2 rounded-2xl border border-black/[0.06] p-3.5">
-        <p className="text-sm font-medium">Pay schedule (optional)</p>
+        <p className="text-sm font-medium">{f.paySchedule}</p>
         <p className="text-xs text-muted-foreground">
-          Powers the payday countdown and tax withholding estimate on the Pay &amp; Taxes page.
+          {f.payScheduleHint}
         </p>
         <div className="grid gap-4 pt-1 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor={`${id}-payFrequency`}>Pay frequency</Label>
+            <Label htmlFor={`${id}-payFrequency`}>{f.payFrequency}</Label>
             <Select name="payFrequency" defaultValue={dv.payFrequency ?? undefined}>
               <SelectTrigger className="w-full" id={`${id}-payFrequency`}>
-                <SelectValue placeholder="Not set" />
+                <SelectValue placeholder={m.common.notSet} />
               </SelectTrigger>
               <SelectContent>
-                {PAY_FREQUENCY_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
+                {PAY_FREQUENCIES.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {m.jobs.frequency[value]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${id}-payAnchorDate`}>A known pay date</Label>
+            <Label htmlFor={`${id}-payAnchorDate`}>{f.knownPayDate}</Label>
             <Input
               id={`${id}-payAnchorDate`}
               name="payAnchorDate"
@@ -173,11 +175,11 @@ export function JobFormFields({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${id}-description`}>Description</Label>
+        <Label htmlFor={`${id}-description`}>{m.common.description}</Label>
         <Textarea id={`${id}-description`} name="description" defaultValue={dv.description ?? ""} rows={2} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${id}-notes`}>Notes</Label>
+        <Label htmlFor={`${id}-notes`}>{m.common.notes}</Label>
         <Textarea id={`${id}-notes`} name="notes" defaultValue={dv.notes ?? ""} rows={2} />
       </div>
     </div>

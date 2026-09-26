@@ -4,19 +4,28 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit/log";
+import { requireUserContext } from "@/lib/data/context";
+import { getI18n } from "@/lib/i18n/server";
+import { validationMessage } from "@/lib/i18n/validation";
 import { manualShiftSchema } from "@/lib/validation/shifts";
-import { shiftsOverlap, validateBreakWithinShift, validateShiftTimes } from "@/lib/calculations";
+import {
+  resolveLocalShiftRange,
+  shiftsOverlap,
+  validateBreakWithinShift,
+  validateShiftTimes,
+} from "@/lib/calculations";
 
 export interface ActionResult {
   error?: string;
 }
 
 export async function clockInAction(jobId: string): Promise<ActionResult> {
+  const { m } = await getI18n();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { data: existingActive } = await supabase
     .from("shifts")
@@ -26,7 +35,7 @@ export async function clockInAction(jobId: string): Promise<ActionResult> {
     .maybeSingle();
 
   if (existingActive) {
-    return { error: "You're already clocked in on another shift. Clock out first." };
+    return { error: m.errors.alreadyClockedIn };
   }
 
   const { data, error } = await supabase
@@ -36,7 +45,7 @@ export async function clockInAction(jobId: string): Promise<ActionResult> {
     .single();
 
   if (error) {
-    return { error: "We couldn't clock you in. Please try again." };
+    return { error: m.errors.clockInFailed };
   }
 
   await logAudit({ userId: user.id, entityType: "shift", entityId: data.id, action: "clocked_in" });
@@ -47,11 +56,12 @@ export async function clockInAction(jobId: string): Promise<ActionResult> {
 }
 
 export async function clockOutAction(shiftId: string): Promise<ActionResult> {
+  const { m } = await getI18n();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const now = new Date().toISOString();
 
@@ -72,7 +82,7 @@ export async function clockOutAction(shiftId: string): Promise<ActionResult> {
     .eq("status", "active");
 
   if (error) {
-    return { error: "We couldn't clock you out. Please try again." };
+    return { error: m.errors.clockOutFailed };
   }
 
   await logAudit({ userId: user.id, entityType: "shift", entityId: shiftId, action: "clocked_out" });
@@ -83,11 +93,12 @@ export async function clockOutAction(shiftId: string): Promise<ActionResult> {
 }
 
 export async function startBreakAction(shiftId: string, isPaid: boolean): Promise<ActionResult> {
+  const { m } = await getI18n();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { data: openBreak } = await supabase
     .from("breaks")
@@ -97,7 +108,7 @@ export async function startBreakAction(shiftId: string, isPaid: boolean): Promis
     .maybeSingle();
 
   if (openBreak) {
-    return { error: "You're already on a break." };
+    return { error: m.errors.alreadyOnBreak };
   }
 
   const { data, error } = await supabase
@@ -107,7 +118,7 @@ export async function startBreakAction(shiftId: string, isPaid: boolean): Promis
     .single();
 
   if (error) {
-    return { error: "We couldn't start your break. Please try again." };
+    return { error: m.errors.breakStartFailed };
   }
 
   await logAudit({ userId: user.id, entityType: "break", entityId: data.id, action: "break_started" });
@@ -118,11 +129,12 @@ export async function startBreakAction(shiftId: string, isPaid: boolean): Promis
 }
 
 export async function endBreakAction(breakId: string): Promise<ActionResult> {
+  const { m } = await getI18n();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { error } = await supabase
     .from("breaks")
@@ -131,7 +143,7 @@ export async function endBreakAction(breakId: string): Promise<ActionResult> {
     .eq("user_id", user.id);
 
   if (error) {
-    return { error: "We couldn't end your break. Please try again." };
+    return { error: m.errors.breakEndFailed };
   }
 
   await logAudit({ userId: user.id, entityType: "break", entityId: breakId, action: "break_ended" });
@@ -141,13 +153,13 @@ export async function endBreakAction(breakId: string): Promise<ActionResult> {
   return {};
 }
 
-async function checkOverlap(
+async function overlapsExistingShift(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   start: Date,
   end: Date,
   excludeShiftId?: string
-): Promise<string | null> {
+): Promise<boolean> {
   let query = supabase
     .from("shifts")
     .select("id, actual_start, actual_end")
@@ -161,21 +173,16 @@ async function checkOverlap(
 
   const { data: otherShifts } = await query;
 
-  const overlap = (otherShifts ?? []).some((other) =>
+  return (otherShifts ?? []).some((other) =>
     shiftsOverlap(
       { start, end },
       { start: other.actual_start as string, end: other.actual_end as string | null }
     )
   );
-
-  return overlap ? "This overlaps with another shift you already have recorded." : null;
 }
 
-export async function createManualShiftAction(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
-  const parsed = manualShiftSchema.safeParse({
+function parseShiftForm(formData: FormData) {
+  return manualShiftSchema.safeParse({
     jobId: formData.get("jobId"),
     date: formData.get("date"),
     startTime: formData.get("startTime"),
@@ -184,24 +191,29 @@ export async function createManualShiftAction(
     breakMinutes: formData.get("breakMinutes") || 0,
     notes: formData.get("notes"),
   });
+}
 
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid shift details." };
-  }
+export async function createManualShiftAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const { m } = await getI18n();
+  const parsed = parseShiftForm(formData);
+  if (!parsed.success) return { error: validationMessage(m, parsed.error) };
 
-  const { start, end, jobId, breakMinutes, notes } = parsed.data;
+  const ctx = await requireUserContext();
+  if (!ctx) return { error: m.errors.mustSignIn };
+  const user = { id: ctx.userId };
 
-  const timeError = validateShiftTimes(start, end);
-  if (timeError) return { error: timeError };
+  const { jobId, breakMinutes, notes } = parsed.data;
+  const { start, end } = resolveLocalShiftRange(
+    { ...parsed.data, endDate: parsed.data.endDate || undefined },
+    ctx.timezone
+  );
+  if (validateShiftTimes(start, end)) return { error: m.errors.endBeforeStart };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
-
-  const overlapError = await checkOverlap(supabase, user.id, start, end);
-  if (overlapError) return { error: overlapError };
+  if (await overlapsExistingShift(supabase, user.id, start, end)) return { error: m.errors.overlap };
 
   const { data: shift, error } = await supabase
     .from("shifts")
@@ -217,7 +229,7 @@ export async function createManualShiftAction(
     .single();
 
   if (error || !shift) {
-    return { error: "We couldn't save this shift. Please try again." };
+    return { error: m.errors.shiftSaveFailed };
   }
 
   if (breakMinutes > 0) {
@@ -250,33 +262,23 @@ export async function updateManualShiftAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  const parsed = manualShiftSchema.safeParse({
-    jobId: formData.get("jobId"),
-    date: formData.get("date"),
-    startTime: formData.get("startTime"),
-    endTime: formData.get("endTime"),
-    endDate: formData.get("endDate"),
-    breakMinutes: formData.get("breakMinutes") || 0,
-    notes: formData.get("notes"),
-  });
+  const { m } = await getI18n();
+  const parsed = parseShiftForm(formData);
+  if (!parsed.success) return { error: validationMessage(m, parsed.error) };
 
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid shift details." };
-  }
+  const ctx = await requireUserContext();
+  if (!ctx) return { error: m.errors.mustSignIn };
+  const user = { id: ctx.userId };
 
-  const { start, end, jobId, notes } = parsed.data;
-
-  const timeError = validateShiftTimes(start, end);
-  if (timeError) return { error: timeError };
+  const { jobId, notes } = parsed.data;
+  const { start, end } = resolveLocalShiftRange(
+    { ...parsed.data, endDate: parsed.data.endDate || undefined },
+    ctx.timezone
+  );
+  if (validateShiftTimes(start, end)) return { error: m.errors.endBeforeStart };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
-
-  const overlapError = await checkOverlap(supabase, user.id, start, end, shiftId);
-  if (overlapError) return { error: overlapError };
+  if (await overlapsExistingShift(supabase, user.id, start, end, shiftId)) return { error: m.errors.overlap };
 
   const { data: before } = await supabase
     .from("shifts")
@@ -297,7 +299,7 @@ export async function updateManualShiftAction(
     .eq("user_id", user.id);
 
   if (error) {
-    return { error: "We couldn't update this shift. Please try again." };
+    return { error: m.errors.shiftUpdateFailed };
   }
 
   await logAudit({
@@ -315,11 +317,12 @@ export async function updateManualShiftAction(
 }
 
 export async function deleteShiftAction(shiftId: string): Promise<ActionResult> {
+  const { m } = await getI18n();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { data: before } = await supabase
     .from("shifts")
@@ -331,7 +334,7 @@ export async function deleteShiftAction(shiftId: string): Promise<ActionResult> 
   const { error } = await supabase.from("shifts").delete().eq("id", shiftId).eq("user_id", user.id);
 
   if (error) {
-    return { error: "We couldn't delete this shift. Please try again." };
+    return { error: m.errors.shiftDeleteFailed };
   }
 
   await logAudit({ userId: user.id, entityType: "shift", entityId: shiftId, action: "deleted", oldData: before });

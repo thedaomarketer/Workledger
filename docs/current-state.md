@@ -113,16 +113,32 @@ for what's next.
   journal entry, add a job -- that deep-link to the page owning that create
   dialog via a `?new=` param (`hooks/use-auto-open.ts`), so the dialog opens
   automatically without duplicating any form/validation logic.
+- **Language & time zone**: the whole app (every page, dialog, toast,
+  validation and server error, CSV header, and the AI assistant's replies)
+  is available in **English, French, and Spanish**, with dates, numbers,
+  and currency formatted for the language (`en-US` / `fr-CA` / `es-US`).
+  **Settings → Language & region** holds the language, currency, and a
+  searchable picker over every IANA time zone (with UTC offsets, the
+  current time there, and a "use this device's time zone" button). Signup
+  captures the device's zone and the current language; accounts still on
+  the UTC default get a one-tap banner to switch to the device's zone.
+  Signed-out pages (landing, sign-in, sign-up) have a language switcher; the
+  language otherwise comes from the saved profile, then the browser's
+  `Accept-Language`. Every wall-clock value a user types (manual shifts,
+  journal times, report/calendar ranges, CSV filters, AI date ranges) is
+  read in the user's saved zone on the server -- see "Time zones" in
+  `docs/architecture.md`.
 
 Verified directly against the live Supabase project (`WorkLedger`,
 `hdeshlblsdsplpyayanz`) via SQL: the new-user trigger creates a profile and
 default settings row, the one-active-shift constraint rejects a duplicate
 clock-in, and RLS correctly hides one user's jobs/shifts/breaks from another
 user while still exposing their own. `npm run lint`, `npm run typecheck`,
-`npm test` (88/88), and `npm run build` all pass. The charts and quick-create
+`npm test` (141/141), and `npm run build` all pass. The charts and quick-create
 menu were also verified visually (desktop + mobile viewports, hover/focus
-tooltips) via a temporary unauthenticated preview route + Playwright
-screenshots, since this sandbox can't reach the live Supabase project to
+tooltips) -- and the French/Spanish UI, time zone picker, and time zone
+prompt at phone width -- via a temporary unauthenticated preview route +
+Playwright screenshots, since this sandbox can't reach the live Supabase project to
 exercise the authenticated app directly.
 
 ## What's stubbed or missing
@@ -151,6 +167,11 @@ exercise the authenticated app directly.
 - **AI Assistant**: non-streaming (shows a "Thinking..." indicator, not
   token-by-token output), no conversation switcher (only the most recent
   conversation is resumed), and no rate limiting on the chat endpoint yet.
+- **Translations**: French and Spanish were written in-house, not by a
+  professional translator; province/state/city names in tax lines stay in
+  English. Supabase's own auth error messages (e.g. on signup) and emails
+  are still English. The unused `profiles.date_format` column is no longer
+  exposed -- dates follow the language's conventions instead.
 - **Pay & Taxes**: tax bracket data (`lib/calculations/tax/`) is a
   hand-written, point-in-time snapshot for the 2024 tax year, not pulled
   from a live feed -- see the caveats in `docs/tax.md`. No push/email

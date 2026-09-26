@@ -5,6 +5,9 @@ import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteExpenseAction } from "@/lib/actions/expenses";
+import { dollarsToCents, formatCents } from "@/lib/calculations/money";
+import { formatCalendarDate } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -29,43 +32,41 @@ export interface ExpenseRow {
 
 export function ExpensesList({ expenses }: { expenses: ExpenseRow[] }) {
   const [isPending, startTransition] = useTransition();
+  const { intl, m } = useI18n();
 
   if (expenses.length === 0) {
-    return <p className="py-10 text-center text-sm text-muted-foreground">No expenses recorded yet.</p>;
+    return <p className="py-10 text-center text-sm text-muted-foreground">{m.expenses.empty}</p>;
   }
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Date</TableHead>
-          <TableHead>Category</TableHead>
-          <TableHead>Job</TableHead>
-          <TableHead>Description</TableHead>
-          <TableHead className="text-right">Amount</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
+          <TableHead>{m.common.date}</TableHead>
+          <TableHead>{m.common.category}</TableHead>
+          <TableHead>{m.common.job}</TableHead>
+          <TableHead>{m.common.description}</TableHead>
+          <TableHead className="text-right">{m.common.amount}</TableHead>
+          <TableHead className="text-right">{m.common.actions}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {expenses.map((expense) => (
           <TableRow key={expense.id}>
-            <TableCell>{expense.expense_date}</TableCell>
+            <TableCell className="whitespace-nowrap">{formatCalendarDate(expense.expense_date, intl)}</TableCell>
             <TableCell>
-              <Badge variant="outline" className="capitalize">
-                {expense.category}
-              </Badge>
+              <Badge variant="outline">{m.expenses.categories[expense.category]}</Badge>
             </TableCell>
             <TableCell>{expense.job?.name ?? "—"}</TableCell>
             <TableCell className="max-w-xs truncate">{expense.description ?? "—"}</TableCell>
             <TableCell className="text-right tabular-nums">
-              {new Intl.NumberFormat("en-US", { style: "currency", currency: expense.currency }).format(
-                expense.amount
-              )}
+              {formatCents(dollarsToCents(expense.amount), expense.currency, intl)}
             </TableCell>
             <TableCell className="text-right">
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label={m.expenses.deleteExpense}
                 disabled={isPending}
                 onClick={() =>
                   startTransition(async () => {

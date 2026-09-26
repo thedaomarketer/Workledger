@@ -22,9 +22,12 @@ export function earningsCentsForMinutes(
   return Math.round((minutes * hourlyRateCents) / 60);
 }
 
-export function formatCents(cents: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(centsToDollars(cents));
+/** Formats cents as currency; `locale` is a BCP 47 tag (see INTL_LOCALES in lib/i18n/config). */
+export function formatCents(cents: number, currency: string, locale: string): string {
+  return formatMoney(centsToDollars(cents), currency, locale);
+}
+
+/** Formats a dollar (major-unit) amount, e.g. an `expenses.amount` numeric column. */
+export function formatMoney(amount: number, currency: string, locale: string): string {
+  return new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount);
 }

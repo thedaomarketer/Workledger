@@ -5,6 +5,7 @@ import { Pencil } from "lucide-react";
 
 import { updateJobAction, type ActionResult } from "@/lib/actions/jobs";
 import type { Database } from "@/lib/supabase/database.types";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +23,7 @@ type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
 export function EditJobDialog({ job }: { job: Job }) {
   const [open, setOpen] = useState(false);
+  const { m } = useI18n();
   const boundAction = updateJobAction.bind(null, job.id);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
 
@@ -38,13 +40,13 @@ export function EditJobDialog({ job }: { job: Job }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <Pencil /> Edit
+          <Pencil /> {m.common.edit}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form action={formAction}>
           <DialogHeader>
-            <DialogTitle>Edit job</DialogTitle>
+            <DialogTitle>{m.jobs.editJob}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <JobFormFields
@@ -68,7 +70,7 @@ export function EditJobDialog({ job }: { job: Job }) {
           {state.error && <p className="mb-2 text-sm text-destructive">{state.error}</p>}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving..." : "Save changes"}
+              {pending ? m.common.saving : m.common.saveChanges}
             </Button>
           </DialogFooter>
         </form>

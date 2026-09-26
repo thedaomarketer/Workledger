@@ -7,21 +7,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getI18n } from "@/lib/i18n/server";
 import { RegisterForm } from "./register-form";
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const { m } = await getI18n();
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl font-bold">Create your account</CardTitle>
-        <CardDescription>Start your complete record of work.</CardDescription>
+        <CardTitle className="text-2xl font-bold">{m.auth.createTitle}</CardTitle>
+        <CardDescription>{m.auth.createSubtitle}</CardDescription>
       </CardHeader>
       <CardContent>
         <RegisterForm />
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          {m.auth.haveAccount}{" "}
           <Link href="/login" className="font-semibold text-primary hover:underline">
-            Sign in
+            {m.auth.signIn}
           </Link>
         </p>
       </CardContent>

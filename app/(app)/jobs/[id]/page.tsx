@@ -10,6 +10,7 @@ import {
   summarizeShiftsByJob,
 } from "@/lib/calculations";
 import { formatMinutesAsHours } from "@/lib/format";
+import { getI18n } from "@/lib/i18n/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EditJobDialog } from "@/components/jobs/edit-job-dialog";
@@ -21,7 +22,7 @@ export default async function JobDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const ctx = await requireUserContext();
+  const [ctx, { locale, intl, m }] = await Promise.all([requireUserContext(), getI18n()]);
   if (!ctx) return null;
 
   const supabase = await createClient();
@@ -65,7 +66,7 @@ export default async function JobDetailPage({
             <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">{job.name}</h1>
             {job.job_title && <p className="text-sm text-muted-foreground">{job.job_title}</p>}
           </div>
-          {!job.is_active && <Badge variant="secondary">Archived</Badge>}
+          {!job.is_active && <Badge variant="secondary">{m.jobs.archived}</Badge>}
         </div>
         <EditJobDialog job={job} />
       </div>
@@ -73,26 +74,26 @@ export default async function JobDetailPage({
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="gap-1.5">
           <CardHeader>
-            <CardTitle className="text-sm font-normal text-muted-foreground">This month</CardTitle>
+            <CardTitle className="text-sm font-normal text-muted-foreground">{m.common.thisMonth}</CardTitle>
           </CardHeader>
           <CardContent className="text-[26px] leading-tight font-bold tracking-tight">
-            {summary ? formatMinutesAsHours(summary.paidMinutes) : "0h"}
+            {formatMinutesAsHours(summary?.paidMinutes ?? 0, locale)}
           </CardContent>
         </Card>
         <Card className="gap-1.5">
           <CardHeader>
-            <CardTitle className="text-sm font-normal text-muted-foreground">Overtime</CardTitle>
+            <CardTitle className="text-sm font-normal text-muted-foreground">{m.common.overtime}</CardTitle>
           </CardHeader>
           <CardContent className="text-[26px] leading-tight font-bold tracking-tight">
-            {summary ? formatMinutesAsHours(summary.overtimeMinutes) : "0h"}
+            {formatMinutesAsHours(summary?.overtimeMinutes ?? 0, locale)}
           </CardContent>
         </Card>
         <Card className="gap-1.5">
           <CardHeader>
-            <CardTitle className="text-sm font-normal text-muted-foreground">Earnings</CardTitle>
+            <CardTitle className="text-sm font-normal text-muted-foreground">{m.common.earnings}</CardTitle>
           </CardHeader>
           <CardContent className="text-[26px] leading-tight font-bold tracking-tight">
-            {summary ? formatCents(summary.earningsCents) : "$0.00"}
+            {formatCents(summary?.earningsCents ?? 0, ctx.currency, intl)}
           </CardContent>
         </Card>
       </div>
@@ -105,7 +106,7 @@ export default async function JobDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Shifts this month</CardTitle>
+          <CardTitle className="text-base">{m.jobs.shiftsThisMonth}</CardTitle>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
           <ShiftHistoryTable

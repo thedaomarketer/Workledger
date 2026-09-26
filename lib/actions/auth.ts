@@ -3,6 +3,10 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getI18n, setLocaleCookie } from "@/lib/i18n/server";
+import { isLocale } from "@/lib/i18n/config";
+import { safeRedirectPath } from "@/lib/safe-redirect";
+import { validationMessage } from "@/lib/i18n/validation";
 import {
   requestPasswordResetSchema,
   signInSchema,
@@ -22,14 +26,17 @@ export async function signUpAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = signUpSchema.safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email"),
     password: formData.get("password"),
+    timezone: formData.get("timezone") ?? undefined,
+    locale: formData.get("locale") ?? undefined,
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
   const supabase = await createClient();
@@ -37,7 +44,12 @@ export async function signUpAction(
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: { full_name: parsed.data.fullName },
+      // Read by the handle_new_user() trigger to seed the profile.
+      data: {
+        full_name: parsed.data.fullName,
+        ...(parsed.data.timezone && { timezone: parsed.data.timezone }),
+        ...(parsed.data.locale && { locale: parsed.data.locale }),
+      },
       emailRedirectTo: `${getOrigin()}/auth/confirm`,
     },
   });
@@ -53,24 +65,31 @@ export async function signInAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = signInSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
-    return { error: "That email and password combination doesn't match our records." };
+    return { error: m.errors.badCredentials };
   }
 
-  const redirectTo = formData.get("redirectTo");
-  redirect(typeof redirectTo === "string" && redirectTo ? redirectTo : "/dashboard");
+  await syncLocaleCookie(supabase, data.user.id);
+  redirect(safeRedirectPath(formData.get("redirectTo"), "/dashboard"));
+}
+
+/** Switches the UI to the language saved on the profile (it follows the account across devices). */
+async function syncLocaleCookie(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+  const { data: profile } = await supabase.from("profiles").select("locale").eq("id", userId).maybeSingle();
+  if (isLocale(profile?.locale)) await setLocaleCookie(profile.locale);
 }
 
 export async function signOutAction(): Promise<void> {
@@ -83,12 +102,13 @@ export async function requestPasswordResetAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = requestPasswordResetSchema.safeParse({
     email: formData.get("email"),
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
   const supabase = await createClient();
@@ -105,13 +125,14 @@ export async function updatePasswordAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = updatePasswordSchema.safeParse({
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
   const supabase = await createClient();

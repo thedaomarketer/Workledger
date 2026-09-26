@@ -1,27 +1,42 @@
 import { z } from "zod";
 
+import { LOCALES } from "@/lib/i18n/config";
+import { v } from "@/lib/i18n/validation";
+import { isValidTimeZone } from "@/lib/timezone";
+
 export const signUpSchema = z.object({
-  fullName: z.string().trim().min(1, "Enter your name.").max(200),
-  email: z.email("Enter a valid email address."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
+  fullName: z.string().trim().min(1, v("nameRequired")).max(200),
+  email: z.email(v("emailInvalid")),
+  password: z.string().min(8, v("passwordMin")),
+  /**
+   * Detected by the browser, never typed. Anything unusable is dropped rather
+   * than failing signup: the account then falls back to UTC / English (the
+   * database trigger re-validates both, since signup metadata is
+   * client-controlled).
+   */
+  timezone: z
+    .string()
+    .optional()
+    .transform((value) => (isValidTimeZone(value) ? value : undefined)),
+  locale: z.enum(LOCALES).optional().catch(undefined),
 });
 
 export const signInSchema = z.object({
-  email: z.email("Enter a valid email address."),
-  password: z.string().min(1, "Enter your password."),
+  email: z.email(v("emailInvalid")),
+  password: z.string().min(1, v("passwordRequired")),
 });
 
 export const requestPasswordResetSchema = z.object({
-  email: z.email("Enter a valid email address."),
+  email: z.email(v("emailInvalid")),
 });
 
 export const updatePasswordSchema = z
   .object({
-    password: z.string().min(8, "Password must be at least 8 characters."),
+    password: z.string().min(8, v("passwordMin")),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match.",
+    message: v("passwordsMismatch"),
     path: ["confirmPassword"],
   });
 

@@ -1,4 +1,11 @@
-import { getLocalDayBounds, getLocalMonthBounds, getWorkweekBounds } from "@/lib/calculations";
+import {
+  addDaysToDateString,
+  getLocalDayBounds,
+  getLocalMonthBounds,
+  getWorkweekBounds,
+  isDateString,
+  localDayStart,
+} from "@/lib/calculations";
 
 export const PERIOD_VALUES = [
   "today",
@@ -62,12 +69,13 @@ export function resolvePeriod(
       return { start, end, label: "last month" };
     }
     case "custom": {
-      if (!custom?.startDate || !custom?.endDate) {
-        throw new Error("custom period requires startDate and endDate");
+      if (!custom?.startDate || !custom?.endDate || !isDateString(custom.startDate) || !isDateString(custom.endDate)) {
+        throw new Error("custom period requires startDate and endDate as YYYY-MM-DD");
       }
-      const { start } = getLocalDayBounds(`${custom.startDate}T12:00:00`, timezone);
-      const { end } = getLocalDayBounds(`${custom.endDate}T12:00:00`, timezone);
-      return { start, end: new Date(end.getTime()), label: `${custom.startDate} to ${custom.endDate}` };
+      // Local midnight on the first day through local midnight after the last.
+      const start = localDayStart(custom.startDate, timezone);
+      const end = localDayStart(addDaysToDateString(custom.endDate, 1), timezone);
+      return { start, end, label: `${custom.startDate} to ${custom.endDate}` };
     }
     default: {
       const _exhaustive: never = period;

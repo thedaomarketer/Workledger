@@ -6,6 +6,7 @@ import { Play, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { clockInAction } from "@/lib/actions/shifts";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -25,15 +26,16 @@ interface Job {
 export function ClockInCard({ jobs }: { jobs: Job[] }) {
   const [jobId, setJobId] = useState(jobs[0]?.id ?? "");
   const [isPending, startTransition] = useTransition();
+  const { m } = useI18n();
 
   if (jobs.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-muted-foreground">Add a job before you clock in.</p>
+          <p className="text-sm text-muted-foreground">{m.time.addJobFirst}</p>
           <Button asChild>
             <Link href="/jobs?new=1">
-              <Plus /> Add your first job
+              <Plus /> {m.time.addFirstJob}
             </Link>
           </Button>
         </CardContent>
@@ -44,12 +46,12 @@ export function ClockInCard({ jobs }: { jobs: Job[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Ready to start?</CardTitle>
+        <CardTitle className="text-base">{m.time.readyToStart}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <Select value={jobId} onValueChange={setJobId}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Choose a job" />
+          <SelectTrigger className="w-full" aria-label={m.common.job}>
+            <SelectValue placeholder={m.common.chooseJob} />
           </SelectTrigger>
           <SelectContent>
             {jobs.map((job) => (
@@ -71,11 +73,11 @@ export function ClockInCard({ jobs }: { jobs: Job[] }) {
             startTransition(async () => {
               const result = await clockInAction(jobId);
               if (result.error) toast.error(result.error);
-              else toast.success("Clocked in.");
+              else toast.success(m.time.clockedIn);
             })
           }
         >
-          <Play /> Clock in
+          <Play /> {m.time.clockIn}
         </Button>
       </CardContent>
     </Card>

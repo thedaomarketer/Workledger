@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
+import { getI18n } from "@/lib/i18n/server";
+import { validationMessage } from "@/lib/i18n/validation";
 import { logAudit } from "@/lib/audit/log";
 import { jobSchema } from "@/lib/validation/jobs";
 
@@ -32,16 +34,17 @@ export async function createJobAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = parseJobForm(formData);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid job details." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { data, error } = await supabase
     .from("jobs")
@@ -66,7 +69,7 @@ export async function createJobAction(
     .single();
 
   if (error) {
-    return { error: "We couldn't save this job. Please try again." };
+    return { error: m.errors.jobSaveFailed };
   }
 
   await logAudit({
@@ -87,16 +90,17 @@ export async function updateJobAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = parseJobForm(formData);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid job details." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { data: before } = await supabase
     .from("jobs")
@@ -127,7 +131,7 @@ export async function updateJobAction(
     .eq("user_id", user.id);
 
   if (error) {
-    return { error: "We couldn't update this job. Please try again." };
+    return { error: m.errors.jobUpdateFailed };
   }
 
   await logAudit({
@@ -167,16 +171,17 @@ export async function setJobActiveAction(jobId: string, isActive: boolean): Prom
 }
 
 export async function deleteJobAction(jobId: string): Promise<ActionResult> {
+  const { m } = await getI18n();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { error } = await supabase.from("jobs").delete().eq("id", jobId).eq("user_id", user.id);
 
   if (error) {
-    return { error: "This job has recorded time or records attached and can't be deleted. Archive it instead." };
+    return { error: m.errors.jobDeleteBlocked };
   }
 
   await logAudit({ userId: user.id, entityType: "job", entityId: jobId, action: "deleted" });

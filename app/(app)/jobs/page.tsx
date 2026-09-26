@@ -5,13 +5,15 @@ import { requireUserContext } from "@/lib/data/context";
 import { getCompletedShiftsInRange } from "@/lib/data/shifts";
 import { dollarsToCents, formatCents, getWorkweekBounds, summarizeShiftsByJob } from "@/lib/calculations";
 import { formatMinutesAsHours } from "@/lib/format";
+import { fmt } from "@/lib/i18n/config";
+import { getI18n } from "@/lib/i18n/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreateJobDialog } from "@/components/jobs/create-job-dialog";
 import { JobActionsMenu } from "@/components/jobs/job-actions-menu";
 
 export default async function JobsPage() {
-  const ctx = await requireUserContext();
+  const [ctx, { locale, intl, m }] = await Promise.all([requireUserContext(), getI18n()]);
   if (!ctx) return null;
 
   const supabase = await createClient();
@@ -51,14 +53,14 @@ export default async function JobsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">Jobs</h1>
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">{m.jobs.title}</h1>
         <CreateJobDialog />
       </div>
 
       {!jobs || jobs.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            You haven&apos;t added any jobs yet. Add one to start tracking time.
+            {m.jobs.empty}
           </CardContent>
         </Card>
       ) : (
@@ -83,23 +85,25 @@ export default async function JobsPage() {
                 <CardContent className="space-y-3">
                   {job.job_title && <p className="text-sm text-muted-foreground">{job.job_title}</p>}
                   {job.hourly_rate != null && (
-                    <p className="text-sm">${job.hourly_rate.toFixed(2)}/hour</p>
+                    <p className="text-sm">
+                      {fmt(m.jobs.perHour, { rate: formatCents(dollarsToCents(job.hourly_rate), ctx.currency, intl) })}
+                    </p>
                   )}
                   <div className="flex items-center justify-between border-t pt-3 text-sm">
-                    <span className="text-muted-foreground">This week</span>
+                    <span className="text-muted-foreground">{m.common.thisWeek}</span>
                     <span className="font-medium tabular-nums">
-                      {summary ? formatMinutesAsHours(summary.paidMinutes) : "0h"}
+                      {formatMinutesAsHours(summary?.paidMinutes ?? 0, locale)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Earnings</span>
+                    <span className="text-muted-foreground">{m.common.earnings}</span>
                     <span className="font-medium tabular-nums">
-                      {summary ? formatCents(summary.earningsCents) : "$0.00"}
+                      {formatCents(summary?.earningsCents ?? 0, ctx.currency, intl)}
                     </span>
                   </div>
                   {!job.is_active && (
                     <Badge variant="secondary" className="w-fit">
-                      Archived
+                      {m.jobs.archived}
                     </Badge>
                   )}
                 </CardContent>

@@ -26,8 +26,8 @@ export function calculateFicaDeductions(grossAnnualIncomeCents: number): TaxLine
   });
 
   const lines: TaxLine[] = [
-    { label: "Social Security", amountCents: socialSecurity },
-    { label: "Medicare", amountCents: medicare + additionalMedicare },
+    { kind: "socialSecurity", label: "Social Security", amountCents: socialSecurity },
+    { kind: "medicare", label: "Medicare", amountCents: medicare + additionalMedicare },
   ];
   return lines;
 }

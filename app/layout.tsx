@@ -4,6 +4,8 @@ import "./globals.css";
 
 import { Toaster } from "@/components/ui/sonner";
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
+import { getI18n } from "@/lib/i18n/server";
+import { I18nProvider } from "@/lib/i18n/client";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,9 +17,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "WorkLedger",
-  description: "Your complete record of work.",
+export async function generateMetadata(): Promise<Metadata> {
+  const { m } = await getI18n();
+  return { ...baseMetadata, title: m.meta.title, description: m.meta.description };
+}
+
+const baseMetadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -42,16 +47,17 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { locale, m } = await getI18n();
+
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        {children}
-        <Toaster position="top-center" />
-        <RegisterServiceWorker />
+        <I18nProvider locale={locale} messages={m}>
+          {children}
+          <Toaster position="top-center" />
+          <RegisterServiceWorker />
+        </I18nProvider>
       </body>
     </html>
   );

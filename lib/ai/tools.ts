@@ -7,12 +7,23 @@ import {
   calculateShiftDuration,
   dollarsToCents,
   formatCents,
+  localDateString,
   summarizeShiftsByJob,
   sumJobSummaries,
 } from "@/lib/calculations";
 import { formatMinutesAsHours } from "@/lib/format";
+
 import type { EntryType, ExpenseCategory } from "@/lib/supabase/database.types";
 import { resolvePeriod, type Period } from "./period";
+
+// Tool results are read by the model, not shown verbatim, so they use one
+// fixed, unambiguous format; the model replies in the user's own language.
+const hours = (minutes: number) => formatMinutesAsHours(minutes, "en");
+
+/** The inclusive local calendar dates an instant range [start, end) covers, for `date` columns. */
+function localDateBounds(start: Date, end: Date, timezone: string): { first: string; last: string } {
+  return { first: localDateString(start, timezone), last: localDateString(new Date(end.getTime() - 1), timezone) };
+}
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -216,16 +227,16 @@ export function buildToolHandlers(
         range: label,
         startDate: start.toISOString(),
         endDate: end.toISOString(),
-        totalPaidHours: formatMinutesAsHours(totals.paidMinutes),
-        regularHours: formatMinutesAsHours(totals.regularMinutes),
-        overtimeHours: formatMinutesAsHours(totals.overtimeMinutes),
+        totalPaidHours: hours(totals.paidMinutes),
+        regularHours: hours(totals.regularMinutes),
+        overtimeHours: hours(totals.overtimeMinutes),
         byJob: Object.fromEntries(
           Object.entries(summary).map(([id, s]) => [
             jobNames[id] ?? id,
             {
-              paidHours: formatMinutesAsHours(s.paidMinutes),
-              regularHours: formatMinutesAsHours(s.regularMinutes),
-              overtimeHours: formatMinutesAsHours(s.overtimeMinutes),
+              paidHours: hours(s.paidMinutes),
+              regularHours: hours(s.regularMinutes),
+              overtimeHours: hours(s.overtimeMinutes),
               shiftCount: s.shiftCount,
             },
           ])
@@ -244,12 +255,12 @@ export function buildToolHandlers(
       const byJob = Object.fromEntries(
         Object.entries(summary)
           .filter(([, s]) => s.overtimeMinutes > 0)
-          .map(([id, s]) => [jobNames[id] ?? id, formatMinutesAsHours(s.overtimeMinutes)])
+          .map(([id, s]) => [jobNames[id] ?? id, hours(s.overtimeMinutes)])
       );
 
       return {
         range: label,
-        totalOvertimeHours: formatMinutesAsHours(sumJobSummaries(summary).overtimeMinutes),
+        totalOvertimeHours: hours(sumJobSummaries(summary).overtimeMinutes),
         byJob,
         note: "Overtime is calculated per job against that job's own configured overtime threshold, using only recorded shifts.",
       };
@@ -265,11 +276,11 @@ export function buildToolHandlers(
 
       return {
         range: label,
-        estimatedGrossEarnings: formatCents(totals.earningsCents, ctx.currency),
-        regularHours: formatMinutesAsHours(totals.regularMinutes),
-        overtimeHours: formatMinutesAsHours(totals.overtimeMinutes),
+        estimatedGrossEarnings: formatCents(totals.earningsCents, ctx.currency, "en-US"),
+        regularHours: hours(totals.regularMinutes),
+        overtimeHours: hours(totals.overtimeMinutes),
         byJob: Object.fromEntries(
-          Object.entries(summary).map(([id, s]) => [jobNames[id] ?? id, formatCents(s.earningsCents, ctx.currency)])
+          Object.entries(summary).map(([id, s]) => [jobNames[id] ?? id, formatCents(s.earningsCents, ctx.currency, "en-US")])
         ),
         note:
           "This is a gross estimate based on recorded shifts and each job's configured rate. It does not represent an actual payroll deposit, and does not account for taxes or deductions.",
@@ -294,7 +305,7 @@ export function buildToolHandlers(
             job: jobNames[s.job_id] ?? s.job_id,
             start: s.actual_start,
             end: s.actual_end,
-            paidHours: formatMinutesAsHours(result.paidMinutes),
+            paidHours: hours(result.paidMinutes),
             notes: s.notes,
           };
         }),
@@ -306,25 +317,26 @@ export function buildToolHandlers(
       const { start, end, label } = resolvePeriod(period, periodCtx, custom);
       const category = input.category as ExpenseCategory | undefined;
 
+      const dates = localDateBounds(start, end, ctx.timezone);
       let query = ctx.supabase
         .from("expenses")
         .select("*, job:jobs(name)")
         .eq("user_id", ctx.userId)
-        .gte("expense_date", start.toISOString().slice(0, 10))
-        .lte("expense_date", end.toISOString().slice(0, 10));
+        .gte("expense_date", dates.first)
+        .lte("expense_date", dates.last);
       if (jobId) query = query.eq("job_id", jobId);
       if (category) query = query.eq("category", category);
 
       const { data } = await query;
-      const total = (data ?? []).reduce((sum, e) => sum + e.amount, 0);
+      const totalCents = (data ?? []).reduce((sum, e) => sum + dollarsToCents(e.amount), 0);
 
       return {
         range: label,
-        total: `${total.toFixed(2)} ${ctx.currency}`,
+        total: formatCents(totalCents, ctx.currency, "en-US"),
         count: data?.length ?? 0,
         expenses: (data ?? []).map((e) => ({
           date: e.expense_date,
-          amount: `${e.amount.toFixed(2)} ${e.currency}`,
+          amount: formatCents(dollarsToCents(e.amount), e.currency, "en-US"),
           category: e.category,
           job: e.job?.name ?? null,
           description: e.description,
@@ -336,28 +348,29 @@ export function buildToolHandlers(
       const { period, custom, jobId } = periodArgs(input);
       const { start, end, label } = resolvePeriod(period, periodCtx, custom);
 
+      const dates = localDateBounds(start, end, ctx.timezone);
       let query = ctx.supabase
         .from("mileage_entries")
         .select("*, job:jobs(name)")
         .eq("user_id", ctx.userId)
-        .gte("date", start.toISOString().slice(0, 10))
-        .lte("date", end.toISOString().slice(0, 10));
+        .gte("date", dates.first)
+        .lte("date", dates.last);
       if (jobId) query = query.eq("job_id", jobId);
 
       const { data } = await query;
-      const totalReimbursement = (data ?? []).reduce((sum, m) => sum + m.reimbursement, 0);
+      const totalReimbursementCents = (data ?? []).reduce((sum, m) => sum + dollarsToCents(m.reimbursement), 0);
       const totalDistance = (data ?? []).reduce((sum, m) => sum + m.distance, 0);
 
       return {
         range: label,
-        totalReimbursement: `${totalReimbursement.toFixed(2)} ${ctx.currency}`,
+        totalReimbursement: formatCents(totalReimbursementCents, ctx.currency, "en-US"),
         totalDistance,
         trips: (data ?? []).map((m) => ({
           date: m.date,
           from: m.start_location,
           to: m.end_location,
           distance: `${m.distance} ${m.unit}`,
-          reimbursement: `${m.reimbursement.toFixed(2)}`,
+          reimbursement: formatCents(dollarsToCents(m.reimbursement), ctx.currency, "en-US"),
           job: m.job?.name ?? null,
         })),
       };
@@ -434,6 +447,7 @@ export function buildToolHandlers(
       const { period, custom, jobId } = periodArgs(input);
       const { start, end, label } = resolvePeriod(period, periodCtx, custom);
       const { jobRates, jobNames } = await fetchJobRates(ctx);
+      const dates = localDateBounds(start, end, ctx.timezone);
 
       const [shifts, expensesRes, mileageRes] = await Promise.all([
         fetchShiftsInRange(ctx, start, end, jobId),
@@ -441,35 +455,35 @@ export function buildToolHandlers(
           .from("expenses")
           .select("amount, currency")
           .eq("user_id", ctx.userId)
-          .gte("expense_date", start.toISOString().slice(0, 10))
-          .lte("expense_date", end.toISOString().slice(0, 10)),
+          .gte("expense_date", dates.first)
+          .lte("expense_date", dates.last),
         ctx.supabase
           .from("mileage_entries")
           .select("reimbursement")
           .eq("user_id", ctx.userId)
-          .gte("date", start.toISOString().slice(0, 10))
-          .lte("date", end.toISOString().slice(0, 10)),
+          .gte("date", dates.first)
+          .lte("date", dates.last),
       ]);
 
       const summary = summarize(shifts, jobRates);
       const totals = sumJobSummaries(summary);
-      const totalExpenses = (expensesRes.data ?? []).reduce((sum, e) => sum + e.amount, 0);
-      const totalMileage = (mileageRes.data ?? []).reduce((sum, m) => sum + m.reimbursement, 0);
+      const totalExpensesCents = (expensesRes.data ?? []).reduce((sum, e) => sum + dollarsToCents(e.amount), 0);
+      const totalMileageCents = (mileageRes.data ?? []).reduce((sum, m) => sum + dollarsToCents(m.reimbursement), 0);
 
       return {
         range: label,
         hours: {
-          total: formatMinutesAsHours(totals.paidMinutes),
-          regular: formatMinutesAsHours(totals.regularMinutes),
-          overtime: formatMinutesAsHours(totals.overtimeMinutes),
+          total: hours(totals.paidMinutes),
+          regular: hours(totals.regularMinutes),
+          overtime: hours(totals.overtimeMinutes),
         },
-        estimatedGrossEarnings: formatCents(totals.earningsCents, ctx.currency),
-        totalExpenses: `${totalExpenses.toFixed(2)} ${ctx.currency}`,
-        totalMileageReimbursement: `${totalMileage.toFixed(2)} ${ctx.currency}`,
+        estimatedGrossEarnings: formatCents(totals.earningsCents, ctx.currency, "en-US"),
+        totalExpenses: formatCents(totalExpensesCents, ctx.currency, "en-US"),
+        totalMileageReimbursement: formatCents(totalMileageCents, ctx.currency, "en-US"),
         byJob: Object.fromEntries(
           Object.entries(summary).map(([id, s]) => [
             jobNames[id] ?? id,
-            { paidHours: formatMinutesAsHours(s.paidMinutes), earnings: formatCents(s.earningsCents, ctx.currency) },
+            { paidHours: hours(s.paidMinutes), earnings: formatCents(s.earningsCents, ctx.currency, "en-US") },
           ])
         ),
         note: "Earnings figures are gross estimates from recorded shifts and configured rates, before taxes or deductions.",

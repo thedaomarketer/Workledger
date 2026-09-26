@@ -31,7 +31,7 @@ export function calculateCanadianPayrollDeductions(grossAnnualIncomeCents: numbe
     ceilingCents: EI_MAX_INSURABLE_EARNINGS_CENTS,
   });
 
-  const lines: TaxLine[] = [{ label: "CPP contributions", amountCents: cpp + cpp2 }];
-  if (ei > 0) lines.push({ label: "EI premiums", amountCents: ei });
+  const lines: TaxLine[] = [{ kind: "cpp", label: "CPP contributions", amountCents: cpp + cpp2 }];
+  if (ei > 0) lines.push({ kind: "ei", label: "EI premiums", amountCents: ei });
   return lines;
 }

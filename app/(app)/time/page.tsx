@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireUserContext } from "@/lib/data/context";
+import { getI18n } from "@/lib/i18n/server";
 import { getActiveShift, getRecentShiftHistory } from "@/lib/data/shifts";
 import { ActiveShiftCard } from "@/components/time/active-shift-card";
 import { ClockInCard } from "@/components/time/clock-in-card";
@@ -8,7 +9,7 @@ import { ShiftHistoryTable } from "@/components/time/shift-history-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function TimePage() {
-  const ctx = await requireUserContext();
+  const [ctx, { m }] = await Promise.all([requireUserContext(), getI18n()]);
   if (!ctx) return null;
 
   const supabase = await createClient();
@@ -28,8 +29,8 @@ export default async function TimePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">Time</h1>
-        <ManualShiftDialog jobs={jobOptions} />
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">{m.time.title}</h1>
+        <ManualShiftDialog jobs={jobOptions} timezone={ctx.timezone} />
       </div>
 
       {activeShift ? (
@@ -48,7 +49,7 @@ export default async function TimePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Shift history</CardTitle>
+          <CardTitle className="text-base">{m.time.shiftHistory}</CardTitle>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
           <ShiftHistoryTable shifts={recentShifts} jobs={jobOptions} timezone={ctx.timezone} />

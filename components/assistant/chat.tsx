@@ -8,18 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
 }
-
-const SUGGESTIONS = [
-  "How many hours did I work this week?",
-  "How much did I earn last month?",
-  "Show me shifts longer than 10 hours",
-  "Summarize my work activity this month",
-];
 
 export function AssistantChat({
   initialConversationId,
@@ -28,6 +22,8 @@ export function AssistantChat({
   initialConversationId: string | null;
   initialMessages: ChatMessage[];
 }) {
+  const { m } = useI18n();
+  const t = m.assistant;
   const [conversationId, setConversationId] = useState(initialConversationId);
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -58,7 +54,7 @@ export function AssistantChat({
         const data = await res.json();
 
         if (!res.ok) {
-          toast.error(data.error ?? "The assistant couldn't respond.");
+          toast.error(data.error ?? t.couldntRespond);
           setMessages((prev) => prev.slice(0, -1));
           return;
         }
@@ -67,7 +63,7 @@ export function AssistantChat({
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
         scrollToBottom();
       } catch {
-        toast.error("The assistant couldn't respond. Check your connection and try again.");
+        toast.error(t.connectionError);
         setMessages((prev) => prev.slice(0, -1));
       }
     });
@@ -87,7 +83,7 @@ export function AssistantChat({
           AI Assistant
         </div>
         <Button variant="ghost" size="sm" onClick={newConversation} disabled={messages.length === 0}>
-          <Plus /> New chat
+          <Plus /> {t.newChat}
         </Button>
       </div>
 
@@ -96,11 +92,10 @@ export function AssistantChat({
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
             <Sparkles className="size-8 text-muted-foreground" />
             <p className="max-w-sm text-sm text-muted-foreground">
-              Ask about your hours, earnings, shifts, expenses, or schedule. Answers come straight from
-              your WorkLedger records.
+              {t.intro}
             </p>
             <div className="flex flex-wrap justify-center gap-2">
-              {SUGGESTIONS.map((s) => (
+              {t.suggestions.map((s) => (
                 <button
                   key={s}
                   type="button"
@@ -134,7 +129,7 @@ export function AssistantChat({
         {isPending && (
           <div className="flex justify-start">
             <div className="max-w-[85%] rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-              Thinking...
+              {t.thinking}
             </div>
           </div>
         )}
@@ -156,11 +151,12 @@ export function AssistantChat({
               send(input);
             }
           }}
-          placeholder="Ask about your hours, earnings, or schedule..."
+          placeholder={t.placeholder}
+          aria-label={t.placeholder}
           rows={1}
           className="max-h-32 min-h-9 resize-none"
         />
-        <Button type="submit" size="icon" disabled={isPending || !input.trim()}>
+        <Button type="submit" size="icon" aria-label={t.send} disabled={isPending || !input.trim()}>
           <Send className="size-4" />
         </Button>
       </form>

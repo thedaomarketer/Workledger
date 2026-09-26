@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n/client";
 
 const DISMISSED_KEY = "workledger:install-prompt-dismissed";
 
@@ -29,6 +30,7 @@ function isStandalone(): boolean {
 }
 
 export function InstallPrompt() {
+  const { m } = useI18n();
   const [deferredEvent, setDeferredEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -68,15 +70,15 @@ export function InstallPrompt() {
     <div className="flex items-center gap-3 border-b bg-accent/50 px-4 py-2.5 text-sm">
       <Download className="size-4 shrink-0 text-muted-foreground" />
       <p className="flex-1 text-accent-foreground">
-        Install WorkLedger for one-tap access to clock in and out.
+        {m.pwa.installPrompt}
       </p>
       <Button size="sm" onClick={install}>
-        Install
+        {m.pwa.install}
       </Button>
       <button
         type="button"
         onClick={dismiss}
-        aria-label="Dismiss"
+        aria-label={m.common.dismiss}
         className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
       >
         <X className="size-4" />

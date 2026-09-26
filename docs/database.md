@@ -42,11 +42,25 @@ user's own session.
   start wherever both are set.
 - `jobs_dates_check`: `end_date >= start_date` when both are set.
 
+## Locale and time zone
+
+- `profiles.locale` (`'en' | 'fr' | 'es'`, default `'en'`, check
+  constraint) is the saved UI language.
+- `profiles.timezone` is constrained by `profiles_timezone_valid`, which
+  calls `public.is_valid_time_zone(tz)` -- a `stable`, `search_path = ''`
+  function checking `pg_catalog.pg_timezone_names`. An invalid zone can't be
+  stored even by a request that bypasses the app's Zod validation.
+
+Both were added in migration `00000000000018_locale_and_signup_timezone.sql`.
+
 ## New-user bootstrap
 
 `handle_new_user()` (a `security definer` trigger function on
 `auth.users after insert`) creates a `profiles` row and a default
-`user_settings` row for every new signup. `EXECUTE` on this function is
+`user_settings` row for every new signup. Since migration 18 it also seeds
+`timezone` and `locale` from the signup metadata the browser sends --
+validated inside the function (unknown zone -> `UTC`, unknown language ->
+`en`), because signup metadata is client-controlled. `EXECUTE` on this function is
 revoked from `anon`/`authenticated`/`public` — it must only ever run as the
 trigger, never be callable directly as an RPC (this was flagged by the
 Supabase security linter and fixed; see migration `00000000000015`).

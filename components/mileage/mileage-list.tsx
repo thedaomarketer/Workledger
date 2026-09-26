@@ -5,6 +5,9 @@ import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteMileageEntryAction } from "@/lib/actions/mileage";
+import { dollarsToCents, formatCents } from "@/lib/calculations/money";
+import { formatCalendarDate } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -28,27 +31,28 @@ export interface MileageRow {
 
 export function MileageList({ entries, currency }: { entries: MileageRow[]; currency: string }) {
   const [isPending, startTransition] = useTransition();
+  const { intl, m } = useI18n();
 
   if (entries.length === 0) {
-    return <p className="py-10 text-center text-sm text-muted-foreground">No trips logged yet.</p>;
+    return <p className="py-10 text-center text-sm text-muted-foreground">{m.mileage.empty}</p>;
   }
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Date</TableHead>
-          <TableHead>Trip</TableHead>
-          <TableHead>Job</TableHead>
-          <TableHead className="text-right">Distance</TableHead>
-          <TableHead className="text-right">Reimbursement</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
+          <TableHead>{m.common.date}</TableHead>
+          <TableHead>{m.mileage.trip}</TableHead>
+          <TableHead>{m.common.job}</TableHead>
+          <TableHead className="text-right">{m.mileage.distance}</TableHead>
+          <TableHead className="text-right">{m.mileage.reimbursement}</TableHead>
+          <TableHead className="text-right">{m.common.actions}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {entries.map((entry) => (
           <TableRow key={entry.id}>
-            <TableCell>{entry.date}</TableCell>
+            <TableCell className="whitespace-nowrap">{formatCalendarDate(entry.date, intl)}</TableCell>
             <TableCell>
               {entry.start_location || entry.end_location
                 ? `${entry.start_location ?? "—"} → ${entry.end_location ?? "—"}`
@@ -56,15 +60,16 @@ export function MileageList({ entries, currency }: { entries: MileageRow[]; curr
             </TableCell>
             <TableCell>{entry.job?.name ?? "—"}</TableCell>
             <TableCell className="text-right tabular-nums">
-              {entry.distance} {entry.unit}
+              {entry.distance.toLocaleString(intl)} {entry.unit}
             </TableCell>
             <TableCell className="text-right tabular-nums">
-              {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(entry.reimbursement)}
+              {formatCents(dollarsToCents(entry.reimbursement), currency, intl)}
             </TableCell>
             <TableCell className="text-right">
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label={m.mileage.deleteTrip}
                 disabled={isPending}
                 onClick={() =>
                   startTransition(async () => {

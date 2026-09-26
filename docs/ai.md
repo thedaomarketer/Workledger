@@ -60,6 +60,8 @@ The model is never given direct database or arbitrary-SQL access. Every fact it 
 - Always label `get_earnings`/`generate_report` figures as gross estimates that don't represent an actual payroll deposit and don't account for taxes or deductions.
 - Ask a clarifying question when a date range is ambiguous, rather than guessing.
 - Say plainly when a tool returns no data, instead of inventing a plausible answer.
+- Reply in the user's app language (English, French, or Spanish -- passed in from the language cookie), or in the language the user writes in, translating labels but never changing a number, date, or amount. Tool results stay in one fixed English format.
+- Show dates and times in the user's time zone, converting the UTC timestamps tools return.
 - Decline questions outside what its tools can answer (legal advice, actual tax filing, HR disputes) and suggest the user seek a real answer elsewhere.
 
 Example:

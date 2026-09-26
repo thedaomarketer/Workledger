@@ -40,8 +40,23 @@ export interface JurisdictionSelection {
   city?: string;
 }
 
+/** Stable identifier for a tax line; the UI maps it to translated text. */
+export type TaxLineKind =
+  | "federalIncomeTax"
+  | "provincialIncomeTax"
+  | "stateIncomeTax"
+  | "localTax"
+  | "cpp"
+  | "ei"
+  | "socialSecurity"
+  | "medicare";
+
 export interface TaxLine {
+  kind: TaxLineKind;
+  /** English label (kept for logs, tests, and the AI assistant's tool output). */
   label: string;
+  /** Province, state, or city name, for the region-specific kinds. */
+  place?: string;
   amountCents: number;
 }
 

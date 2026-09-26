@@ -33,6 +33,21 @@ describe("estimateTax", () => {
     expect(withCity.totalIncomeTaxCents).toBeGreaterThan(withoutCity.totalIncomeTaxCents);
   });
 
+  it("tags every line with a stable kind (and a place for regional lines) for translation", () => {
+    const ca = estimateTax(dollarsToCents(60_000), { country: "CA", region: "QC" });
+    expect(ca.incomeTaxLines.map((l) => l.kind)).toEqual(["federalIncomeTax", "provincialIncomeTax"]);
+    expect(ca.incomeTaxLines[1].place).toBe("Quebec");
+    expect(ca.payrollDeductionLines.map((l) => l.kind)).toEqual(["cpp", "ei"]);
+
+    const us = estimateTax(dollarsToCents(80_000), { country: "US", region: "NY", city: "NYC" });
+    expect(us.incomeTaxLines.map((l) => l.kind)).toEqual(["federalIncomeTax", "stateIncomeTax", "localTax"]);
+    expect(us.incomeTaxLines[1].place).toBe("New York");
+    expect(us.payrollDeductionLines.map((l) => l.kind)).toEqual(["socialSecurity", "medicare"]);
+    // Kinds are unique per estimate, so they can key rendered rows.
+    const kinds = [...us.incomeTaxLines, ...us.payrollDeductionLines].map((l) => l.kind);
+    expect(new Set(kinds).size).toBe(kinds.length);
+  });
+
   it("produces zero tax and zero payroll deductions for zero income", () => {
     const result = estimateTax(0, { country: "CA", region: "AB" });
     expect(result.totalDeductionsCents).toBe(0);

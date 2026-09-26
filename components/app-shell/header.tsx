@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { ClipboardCheck, LogOut, Settings, User as UserIcon } from "lucide-react";
 
 import { signOutAction } from "@/lib/actions/auth";
+import { getI18n } from "@/lib/i18n/server";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +12,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Link from "next/link";
 
 function initials(name: string | null, email: string | null): string {
   if (name && name.trim()) {
@@ -20,13 +21,14 @@ function initials(name: string | null, email: string | null): string {
   return (email ?? "?").slice(0, 2).toUpperCase();
 }
 
-export function Header({
+export async function Header({
   fullName,
   email,
 }: {
   fullName: string | null;
   email: string | null;
 }) {
+  const { m } = await getI18n();
   return (
     <header className="glass sticky top-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0 items-center justify-between border-b border-black/[0.06] px-4 pt-[env(safe-area-inset-top)] md:px-6">
       <Link href="/dashboard" className="flex items-center gap-2 font-semibold tracking-tight md:hidden">
@@ -38,7 +40,7 @@ export function Header({
       <div className="hidden md:block" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="rounded-full">
+          <Button variant="ghost" size="icon" className="rounded-full" aria-label={m.header.accountMenu}>
             <Avatar className="size-8">
               <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{initials(fullName, email)}</AvatarFallback>
             </Avatar>
@@ -46,25 +48,25 @@ export function Header({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <div className="px-2 py-1.5 text-sm">
-            <p className="font-medium">{fullName ?? "Your account"}</p>
+            <p className="font-medium">{fullName ?? m.header.yourAccount}</p>
             <p className="truncate text-xs text-muted-foreground">{email}</p>
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <Link href="/settings">
-              <UserIcon /> Profile
+              <UserIcon /> {m.header.profile}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/settings">
-              <Settings /> Settings
+              <Settings /> {m.header.settings}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <form action={signOutAction}>
             <DropdownMenuItem asChild variant="destructive">
               <button type="submit" className="w-full">
-                <LogOut /> Log out
+                <LogOut /> {m.header.logOut}
               </button>
             </DropdownMenuItem>
           </form>

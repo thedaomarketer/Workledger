@@ -55,4 +55,19 @@ describe("resolvePeriod", () => {
   it("throws when custom is missing startDate/endDate", () => {
     expect(() => resolvePeriod("custom", ctx)).toThrow();
   });
+
+  it("rejects malformed custom dates", () => {
+    expect(() => resolvePeriod("custom", ctx, { startDate: "June 1", endDate: "2024-06-05" })).toThrow();
+  });
+
+  it("anchors custom ranges to local midnight far from UTC, across a DST change", () => {
+    const kiritimati = { ...ctx, timezone: "Pacific/Kiritimati" }; // UTC+14
+    const { start, end } = resolvePeriod("custom", kiritimati, { startDate: "2024-06-01", endDate: "2024-06-01" });
+    expect(start.toISOString()).toBe("2024-05-31T10:00:00.000Z");
+    expect(end.toISOString()).toBe("2024-06-01T10:00:00.000Z");
+
+    // US spring-forward (Mar 10, 2024): the day is 23 hours long.
+    const dst = resolvePeriod("custom", ctx, { startDate: "2024-03-10", endDate: "2024-03-10" });
+    expect(dst.end.getTime() - dst.start.getTime()).toBe(23 * 60 * 60 * 1000);
+  });
 });

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
+import { getI18n } from "@/lib/i18n/server";
+import { validationMessage } from "@/lib/i18n/validation";
 import { logAudit } from "@/lib/audit/log";
 import { expenseSchema } from "@/lib/validation/expenses";
 import type { ExpenseCategory } from "@/lib/supabase/database.types";
@@ -15,6 +17,7 @@ export async function createExpenseAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = expenseSchema.safeParse({
     jobId: formData.get("jobId"),
     amount: formData.get("amount"),
@@ -24,14 +27,14 @@ export async function createExpenseAction(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid expense." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { data: profile } = await supabase.from("profiles").select("currency").eq("id", user.id).maybeSingle();
 
@@ -50,7 +53,7 @@ export async function createExpenseAction(
     .single();
 
   if (error) {
-    return { error: "We couldn't save this expense. Please try again." };
+    return { error: m.errors.expenseSaveFailed };
   }
 
   await logAudit({ userId: user.id, entityType: "expense", entityId: data.id, action: "created" });
@@ -61,11 +64,12 @@ export async function createExpenseAction(
 }
 
 export async function deleteExpenseAction(expenseId: string): Promise<ActionResult> {
+  const { m } = await getI18n();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { data: before } = await supabase
     .from("expenses")
@@ -75,7 +79,7 @@ export async function deleteExpenseAction(expenseId: string): Promise<ActionResu
     .maybeSingle();
 
   const { error } = await supabase.from("expenses").delete().eq("id", expenseId).eq("user_id", user.id);
-  if (error) return { error: "We couldn't delete this expense." };
+  if (error) return { error: m.errors.expenseDeleteFailed };
 
   await logAudit({ userId: user.id, entityType: "expense", entityId: expenseId, action: "deleted", oldData: before });
 

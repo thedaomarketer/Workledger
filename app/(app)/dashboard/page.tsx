@@ -1,6 +1,8 @@
 import { getDashboardData } from "@/lib/data/dashboard";
 import { formatCents } from "@/lib/calculations";
-import { formatMinutesAsHours as fmtHrs } from "@/lib/format";
+import { formatMinutesAsHours } from "@/lib/format";
+import { getI18n } from "@/lib/i18n/server";
+import { fmt } from "@/lib/i18n/config";
 import { ActiveShiftCard } from "@/components/time/active-shift-card";
 import { ClockInCard } from "@/components/time/clock-in-card";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -9,11 +11,12 @@ import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { NextPaydayCard } from "@/components/dashboard/next-payday-card";
 
 export default async function DashboardPage() {
-  const data = await getDashboardData();
+  const [data, { locale, intl, m }] = await Promise.all([getDashboardData(), getI18n()]);
   if (!data) return null;
+  const fmtHrs = (minutes: number) => formatMinutesAsHours(minutes, locale);
 
   const today = new Date();
-  const dateLabel = today.toLocaleDateString("en-US", {
+  const dateLabel = today.toLocaleDateString(intl, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -23,15 +26,15 @@ export default async function DashboardPage() {
   const hour = Number(
     new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: data.timezone }).format(today)
   );
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greeting =
+    hour < 12 ? m.dashboard.goodMorning : hour < 18 ? m.dashboard.goodAfternoon : m.dashboard.goodEvening;
   const firstName = data.fullName?.split(" ")[0];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">
-          {greeting}
-          {firstName ? `, ${firstName}` : ""}
+          {firstName ? fmt(m.dashboard.greetingWithName, { greeting, name: firstName }) : greeting}
         </h1>
         <p className="text-sm text-muted-foreground">{dateLabel}</p>
       </div>
@@ -50,17 +53,21 @@ export default async function DashboardPage() {
         <ClockInCard jobs={data.jobs} />
       )}
 
-      {data.nextPayday && <NextPaydayCard payday={data.nextPayday} />}
+      {data.nextPayday && <NextPaydayCard payday={data.nextPayday} timezone={data.timezone} />}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <MetricCard label="Today" value={fmtHrs(data.todayTotals.paidMinutes)} />
-        <MetricCard label="This week" value={fmtHrs(data.weekTotals.paidMinutes)} />
+        <MetricCard label={m.dashboard.today} value={fmtHrs(data.todayTotals.paidMinutes)} />
+        <MetricCard label={m.common.thisWeek} value={fmtHrs(data.weekTotals.paidMinutes)} />
         <MetricCard
-          label="Overtime"
+          label={m.common.overtime}
           value={fmtHrs(data.weekTotals.overtimeMinutes)}
-          sub={data.weekTotals.overtimeMinutes > 0 ? "this week" : undefined}
+          sub={data.weekTotals.overtimeMinutes > 0 ? m.common.thisWeekLower : undefined}
         />
-        <MetricCard label="Est. earnings" value={formatCents(data.weekTotals.earningsCents)} sub="this week" />
+        <MetricCard
+          label={m.dashboard.estEarnings}
+          value={formatCents(data.weekTotals.earningsCents, data.currency, intl)}
+          sub={m.common.thisWeekLower}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

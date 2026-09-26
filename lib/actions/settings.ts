@@ -4,9 +4,17 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getI18n, setLocaleCookie } from "@/lib/i18n/server";
+import { validationMessage } from "@/lib/i18n/validation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit/log";
-import { preferencesSchema, profileSchema, taxSettingsSchema } from "@/lib/validation/settings";
+import {
+  preferencesSchema,
+  profileSchema,
+  regionSchema,
+  taxSettingsSchema,
+  timeZoneSchema,
+} from "@/lib/validation/settings";
 
 export interface ActionResult {
   error?: string;
@@ -17,25 +25,23 @@ export async function updateProfileAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = profileSchema.safeParse({
     fullName: formData.get("fullName"),
     phone: formData.get("phone"),
     country: formData.get("country"),
-    timezone: formData.get("timezone"),
-    currency: formData.get("currency"),
-    dateFormat: formData.get("dateFormat"),
     defaultHourlyRate: formData.get("defaultHourlyRate") || undefined,
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid profile details." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { error } = await supabase
     .from("profiles")
@@ -43,15 +49,12 @@ export async function updateProfileAction(
       full_name: parsed.data.fullName,
       phone: parsed.data.phone || null,
       country: parsed.data.country || null,
-      timezone: parsed.data.timezone,
-      currency: parsed.data.currency.toUpperCase(),
-      date_format: parsed.data.dateFormat,
       default_hourly_rate: parsed.data.defaultHourlyRate ?? null,
     })
     .eq("id", user.id);
 
   if (error) {
-    return { error: "We couldn't save your profile. Please try again." };
+    return { error: m.errors.profileSaveFailed };
   }
 
   revalidatePath("/settings");
@@ -59,10 +62,70 @@ export async function updateProfileAction(
   return { success: true };
 }
 
+export async function updateRegionAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const { m } = await getI18n();
+  const parsed = regionSchema.safeParse({
+    locale: formData.get("locale"),
+    timezone: formData.get("timezone"),
+    currency: formData.get("currency"),
+  });
+
+  if (!parsed.success) {
+    return { error: validationMessage(m, parsed.error) };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: m.errors.mustSignIn };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      locale: parsed.data.locale,
+      timezone: parsed.data.timezone,
+      currency: parsed.data.currency,
+    })
+    .eq("id", user.id);
+
+  if (error) {
+    return { error: m.errors.regionSaveFailed };
+  }
+
+  await setLocaleCookie(parsed.data.locale);
+  // Every page's dates, totals, and text depend on these.
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+/** One-tap switch from the "your device is in a different time zone" prompt. */
+export async function updateTimeZoneAction(timezone: string): Promise<ActionResult> {
+  const { m } = await getI18n();
+  const parsed = timeZoneSchema.safeParse(timezone);
+  if (!parsed.success) return { error: validationMessage(m, parsed.error) };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: m.errors.mustSignIn };
+
+  const { error } = await supabase.from("profiles").update({ timezone: parsed.data }).eq("id", user.id);
+  if (error) return { error: m.errors.regionSaveFailed };
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
 export async function updatePreferencesAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = preferencesSchema.safeParse({
     weekStartsOn: formData.get("weekStartsOn"),
     defaultBreakMinutes: formData.get("defaultBreakMinutes"),
@@ -72,14 +135,14 @@ export async function updatePreferencesAction(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid preferences." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { error } = await supabase
     .from("user_settings")
@@ -93,7 +156,7 @@ export async function updatePreferencesAction(
     .eq("user_id", user.id);
 
   if (error) {
-    return { error: "We couldn't save your preferences. Please try again." };
+    return { error: m.errors.preferencesSaveFailed };
   }
 
   revalidatePath("/settings");
@@ -105,6 +168,7 @@ export async function updateTaxSettingsAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { m } = await getI18n();
   const parsed = taxSettingsSchema.safeParse({
     taxCountry: formData.get("taxCountry"),
     taxRegion: formData.get("taxRegion"),
@@ -112,14 +176,14 @@ export async function updateTaxSettingsAction(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid tax settings." };
+    return { error: validationMessage(m, parsed.error) };
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   const { error } = await supabase
     .from("user_settings")
@@ -131,7 +195,7 @@ export async function updateTaxSettingsAction(
     .eq("user_id", user.id);
 
   if (error) {
-    return { error: "We couldn't save your tax settings. Please try again." };
+    return { error: m.errors.taxSaveFailed };
   }
 
   revalidatePath("/settings");
@@ -140,11 +204,12 @@ export async function updateTaxSettingsAction(
 }
 
 export async function deleteAccountAction(): Promise<ActionResult> {
+  const { m } = await getI18n();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: m.errors.mustSignIn };
 
   await logAudit({ userId: user.id, entityType: "account", entityId: user.id, action: "deleted" });
 
@@ -152,7 +217,7 @@ export async function deleteAccountAction(): Promise<ActionResult> {
   const { error } = await admin.auth.admin.deleteUser(user.id);
 
   if (error) {
-    return { error: "We couldn't delete your account. Please try again or contact support." };
+    return { error: m.errors.accountDeleteFailed };
   }
 
   await supabase.auth.signOut();

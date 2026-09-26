@@ -1,5 +1,7 @@
 import { calculateShiftDuration } from "@/lib/calculations";
 import { formatDate, formatMinutesAsHours, formatTime } from "@/lib/format";
+import { getI18n } from "@/lib/i18n/server";
+import type { Messages } from "@/lib/i18n/messages/en";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -28,7 +30,7 @@ export interface ShiftHistoryRow {
   job: { id: string; name: string; color: string } | null;
 }
 
-export function ShiftHistoryTable({
+export async function ShiftHistoryTable({
   shifts,
   jobs,
   timezone,
@@ -37,20 +39,21 @@ export function ShiftHistoryTable({
   jobs: { id: string; name: string }[];
   timezone: string;
 }) {
+  const { locale, intl, m } = await getI18n();
   if (shifts.length === 0) {
-    return <p className="py-10 text-center text-sm text-muted-foreground">No shifts recorded yet.</p>;
+    return <p className="py-10 text-center text-sm text-muted-foreground">{m.time.noShifts}</p>;
   }
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Date</TableHead>
-          <TableHead>Job</TableHead>
-          <TableHead>Time</TableHead>
-          <TableHead>Paid</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
+          <TableHead>{m.common.date}</TableHead>
+          <TableHead>{m.common.job}</TableHead>
+          <TableHead>{m.time.title}</TableHead>
+          <TableHead>{m.time.paid}</TableHead>
+          <TableHead>{m.common.status}</TableHead>
+          <TableHead className="text-right">{m.common.actions}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -64,7 +67,7 @@ export function ShiftHistoryTable({
 
           return (
             <TableRow key={shift.id}>
-              <TableCell>{formatDate(shift.actual_start, timezone)}</TableCell>
+              <TableCell>{formatDate(shift.actual_start, timezone, intl)}</TableCell>
               <TableCell>
                 {shift.job && (
                   <span className="inline-flex items-center gap-1.5">
@@ -74,15 +77,15 @@ export function ShiftHistoryTable({
                 )}
               </TableCell>
               <TableCell className="tabular-nums">
-                {formatTime(shift.actual_start, timezone)}
-                {shift.actual_end ? ` – ${formatTime(shift.actual_end, timezone)}` : " – ongoing"}
+                {formatTime(shift.actual_start, timezone, intl)}
+                {shift.actual_end ? ` – ${formatTime(shift.actual_end, timezone, intl)}` : ` – ${m.time.ongoing}`}
               </TableCell>
               <TableCell className="tabular-nums">
-                {result.isComplete ? formatMinutesAsHours(result.paidMinutes) : "—"}
+                {result.isComplete ? formatMinutesAsHours(result.paidMinutes, locale) : "—"}
               </TableCell>
               <TableCell>
-                <Badge variant={shift.status === "active" ? "success" : "outline"} className="capitalize">
-                  {shift.status}
+                <Badge variant={shift.status === "active" ? "success" : "outline"}>
+                  {shiftStatusLabel(shift.status, m)}
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
@@ -91,6 +94,7 @@ export function ShiftHistoryTable({
                     <EditShiftDialog
                       shiftId={shift.id}
                       jobs={jobs}
+                      timezone={timezone}
                       defaultValues={{
                         jobId: shift.job?.id ?? "",
                         actualStart: shift.actual_start,
@@ -108,4 +112,8 @@ export function ShiftHistoryTable({
       </TableBody>
     </Table>
   );
+}
+
+function shiftStatusLabel(status: string, m: Messages): string {
+  return m.time.status[status as keyof Messages["time"]["status"]] ?? status;
 }

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 import { NAV_ITEMS, type NavItem } from "./nav-items";
 import { CreateMenu } from "./create-menu";
 
@@ -12,12 +13,13 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-const MORE_TAB: NavItem = { href: "/more", label: "More", icon: MoreHorizontal };
+const MORE_TAB: NavItem = { href: "/more", label: "more", icon: MoreHorizontal };
 const TABS = [...NAV_ITEMS.filter((item) => item.mobile), MORE_TAB];
 const LEFT_TABS = TABS.slice(0, 2);
 const RIGHT_TABS = TABS.slice(2, 4);
 
 function Tab({ item, active }: { item: NavItem; active: boolean }) {
+  const { m } = useI18n();
   return (
     <Link
       href={item.href}
@@ -28,7 +30,7 @@ function Tab({ item, active }: { item: NavItem; active: boolean }) {
       )}
     >
       <item.icon className="size-[22px]" strokeWidth={active ? 2.25 : 1.75} />
-      {item.label}
+      <span className="max-w-full truncate px-1">{m.nav[item.tabLabel ?? item.label]}</span>
     </Link>
   );
 }
@@ -41,6 +43,7 @@ function Tab({ item, active }: { item: NavItem; active: boolean }) {
  */
 export function MobileNav() {
   const pathname = usePathname();
+  const { m } = useI18n();
   const moreActive =
     isActive(pathname, "/more") || NAV_ITEMS.some((item) => !item.mobile && isActive(pathname, item.href));
 
@@ -48,7 +51,7 @@ export function MobileNav() {
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={m.nav.primary}
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.625rem,env(safe-area-inset-bottom))] md:hidden"
     >
       <div className="glass pointer-events-auto mx-auto grid h-16 max-w-md grid-cols-5 items-center rounded-full border border-white/70 shadow-[0_8px_32px_rgb(0_0_0/0.12)]">

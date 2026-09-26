@@ -3,7 +3,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireUserContext } from "@/lib/data/context";
-import { getLocalMonthBounds } from "@/lib/calculations";
+import { addMonthsToMonthString, isMonthString, localDayStart, localMonthString } from "@/lib/calculations";
+import { getI18n } from "@/lib/i18n/server";
 import { formatDate, formatTime } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,18 +15,17 @@ export default async function CalendarPage({
 }: {
   searchParams: Promise<{ month?: string }>;
 }) {
-  const params = await searchParams;
-  const ctx = await requireUserContext();
+  const [params, ctx, { intl, m }] = await Promise.all([searchParams, requireUserContext(), getI18n()]);
   if (!ctx) return null;
 
-  const anchor = params.month ? new Date(`${params.month}-01T00:00:00`) : new Date();
-  const { start, end } = getLocalMonthBounds(anchor, ctx.timezone);
-
-  const prevMonth = new Date(start);
-  prevMonth.setMonth(prevMonth.getMonth() - 1);
-  const nextMonth = new Date(start);
-  nextMonth.setMonth(nextMonth.getMonth() + 1);
-  const monthParam = (d: Date) => d.toISOString().slice(0, 7);
+  // `month` is a local "yyyy-mm"; its bounds are midnight on the 1st in the
+  // user's zone -- never `new Date("yyyy-mm-01")`, which the server reads as UTC.
+  const month =
+    params.month && isMonthString(params.month) ? params.month : localMonthString(new Date(), ctx.timezone);
+  const prevMonth = addMonthsToMonthString(month, -1);
+  const nextMonth = addMonthsToMonthString(month, 1);
+  const start = localDayStart(`${month}-01`, ctx.timezone);
+  const end = localDayStart(`${nextMonth}-01`, ctx.timezone);
 
   const supabase = await createClient();
   const [{ data: shifts }, { data: scheduleEntries }] = await Promise.all([
@@ -51,24 +51,24 @@ export default async function CalendarPage({
     ...(shifts ?? []).map((s) => ({
       id: `shift-${s.id}`,
       at: s.actual_start!,
-      label: s.job?.name ?? "Shift",
-      sub: `${formatTime(s.actual_start!, ctx.timezone)}${s.actual_end ? ` – ${formatTime(s.actual_end, ctx.timezone)}` : ""}`,
+      label: s.job?.name ?? m.calendar.shift,
+      sub: `${formatTime(s.actual_start!, ctx.timezone, intl)}${s.actual_end ? ` – ${formatTime(s.actual_end, ctx.timezone, intl)}` : ""}`,
       color: s.job?.color ?? "#525252",
-      badge: s.status === "active" ? "Working now" : "Worked",
+      badge: s.status === "active" ? m.calendar.workingNow : m.calendar.worked,
     })),
     ...(scheduleEntries ?? []).map((s) => ({
       id: `sched-${s.id}`,
       at: s.start_at,
-      label: s.job?.name ?? "Scheduled",
-      sub: `${formatTime(s.start_at, ctx.timezone)} – ${formatTime(s.end_at, ctx.timezone)}`,
+      label: s.job?.name ?? m.calendar.scheduled,
+      sub: `${formatTime(s.start_at, ctx.timezone, intl)} – ${formatTime(s.end_at, ctx.timezone, intl)}`,
       color: s.job?.color ?? "#525252",
-      badge: "Scheduled",
+      badge: m.calendar.scheduled,
     })),
   ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
   const byDate = new Map<string, Item[]>();
   for (const item of items) {
-    const key = formatDate(item.at, ctx.timezone);
+    const key = formatDate(item.at, ctx.timezone, intl);
     byDate.set(key, [...(byDate.get(key) ?? []), item]);
   }
 
@@ -76,16 +76,16 @@ export default async function CalendarPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">
-          {start.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: ctx.timezone })}
+          {start.toLocaleDateString(intl, { month: "long", year: "numeric", timeZone: ctx.timezone })}
         </h1>
         <div className="flex gap-2">
           <Button asChild variant="outline" size="icon">
-            <Link href={`/calendar?month=${monthParam(prevMonth)}`}>
+            <Link href={`/calendar?month=${prevMonth}`} aria-label={m.calendar.previousMonth}>
               <ChevronLeft className="size-4" />
             </Link>
           </Button>
           <Button asChild variant="outline" size="icon">
-            <Link href={`/calendar?month=${monthParam(nextMonth)}`}>
+            <Link href={`/calendar?month=${nextMonth}`} aria-label={m.calendar.nextMonth}>
               <ChevronRight className="size-4" />
             </Link>
           </Button>
@@ -95,7 +95,7 @@ export default async function CalendarPage({
       {byDate.size === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            Nothing scheduled or worked this month.
+            {m.calendar.empty}
           </CardContent>
         </Card>
       ) : (

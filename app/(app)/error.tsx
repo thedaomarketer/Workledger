@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n/client";
 
 export default function AppError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const router = useRouter();
+  const { m } = useI18n();
 
   useEffect(() => {
     console.error(error);
@@ -19,17 +21,16 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
         <AlertTriangle className="size-6 text-destructive" />
       </div>
       <div className="space-y-1.5">
-        <h1 className="text-xl font-semibold tracking-tight">Something went wrong</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{m.errorPage.title}</h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          We couldn&apos;t load this page. Your recorded hours and data are safe -- try again, or head back to
-          the dashboard.
+          {m.errorPage.body}
         </p>
       </div>
       <div className="mt-2 flex gap-2">
         <Button variant="outline" onClick={() => router.push("/dashboard")}>
-          Go to dashboard
+          {m.errorPage.goToDashboard}
         </Button>
-        <Button onClick={reset}>Try again</Button>
+        <Button onClick={reset}>{m.errorPage.tryAgain}</Button>
       </div>
     </div>
   );

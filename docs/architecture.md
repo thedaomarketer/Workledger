@@ -38,6 +38,8 @@ lib/
   data/             read-side data fetching for Server Components
   validation/       Zod schemas
   audit/            audit_logs writer
+  i18n/             locales, message dictionaries (en/fr/es), server +
+                     client accessors
 supabase/
   migrations/       numbered SQL migrations, applied directly via the
                      Supabase MCP tools during this build (also valid
@@ -62,6 +64,47 @@ This is deliberate:
 
 Money is always integer cents internally (`money.ts`); the UI only
 formats cents to a currency string at render time.
+
+## Internationalization
+
+A small typed dictionary system rather than a library (`lib/i18n/`):
+
+- `messages/en.ts` is the source of truth; `Messages = typeof en`, and
+  `fr.ts` / `es.ts` are typed `: Messages`, so a missing or misspelled key
+  fails `npm run typecheck`. `tests/unit/i18n.test.ts` additionally checks
+  array lengths, `{placeholder}` names, and that strings are actually
+  translated.
+- **Server**: `getI18n()` returns `{ locale, intl, m }`. The locale comes
+  from the `wl-locale` cookie (set from `profiles.locale` at sign-in / email
+  confirmation, by Settings, or by the signed-out language switcher), then
+  `Accept-Language`, then English.
+- **Client**: the root layout passes only the active language's dictionary
+  to `<I18nProvider>`; client components call `useI18n()`.
+- Zod schemas carry message *keys* (`v("emailInvalid")`), and actions
+  translate them with `validationMessage(m, error)`, so validation runs the
+  same on server and client but reports in the user's language.
+- Every formatter in `lib/format.ts` / `formatCents` takes the Intl tag
+  (and time zone) explicitly -- there is no default, so a missed call site
+  is a type error rather than a silently-English or silently-UTC string.
+- The AI assistant gets the locale in its system prompt and replies in
+  that language; its tool results stay in one fixed English format.
+
+## Time zones
+
+The server runs in UTC, so any wall-clock value parsed there without a zone
+is read as UTC. The rule: **a wall-clock value is only ever turned into an
+instant with the user's saved zone**, via `lib/calculations/local-time.ts`
+(`localDateTimeToInstant`, `localDayStart`, `resolveLocalShiftRange`, ...).
+This covers manual shift entry and edits (an overnight shift moves to the
+next *calendar day*, so a DST night is still the right length), journal
+times, the calendar month, report ranges, CSV filters, and the AI's custom
+date ranges. Instants are rendered back with the zone passed explicitly.
+
+The zone list comes from `Intl.supportedValuesOf("timeZone")`, with retired
+ICU aliases (`Asia/Calcutta`, `Europe/Kiev`, ...) mapped to current IANA
+names (`lib/timezone.ts#modernTimeZoneId`) so search matches what people
+expect. Zones are validated in Zod (`isValidTimeZone`) and again by a
+database check constraint (see `docs/database.md`).
 
 ## Data flow
 

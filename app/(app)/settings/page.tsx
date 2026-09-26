@@ -2,14 +2,16 @@ import { Download } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireUserContext } from "@/lib/data/context";
+import { getI18n } from "@/lib/i18n/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { PreferencesForm } from "@/components/settings/preferences-form";
+import { RegionForm } from "@/components/settings/region-form";
 import { DeleteAccountDialog } from "@/components/settings/delete-account-dialog";
 
 export default async function SettingsPage() {
-  const ctx = await requireUserContext();
+  const [ctx, { m }] = await Promise.all([requireUserContext(), getI18n()]);
   if (!ctx) return null;
 
   const supabase = await createClient();
@@ -22,22 +24,21 @@ export default async function SettingsPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">Settings</h1>
+      <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">{m.settings.title}</h1>
 
       <ProfileForm profile={profile} />
+      <RegionForm profile={{ locale: profile.locale, timezone: ctx.timezone, currency: profile.currency }} />
       <PreferencesForm settings={settings} />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Your data</CardTitle>
+          <CardTitle className="text-base">{m.settings.data.title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-3 text-sm text-muted-foreground">
-            Download a copy of everything WorkLedger has recorded for you.
-          </p>
+          <p className="mb-3 text-sm text-muted-foreground">{m.settings.data.body}</p>
           <Button asChild variant="outline">
             <a href="/api/account/export">
-              <Download /> Export my data
+              <Download /> {m.settings.data.export}
             </a>
           </Button>
         </CardContent>
@@ -45,12 +46,10 @@ export default async function SettingsPage() {
 
       <Card className="border-destructive/30">
         <CardHeader>
-          <CardTitle className="text-base text-destructive">Danger zone</CardTitle>
+          <CardTitle className="text-base text-destructive">{m.settings.danger.title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-3 text-sm text-muted-foreground">
-            Permanently delete your account and all associated data.
-          </p>
+          <p className="mb-3 text-sm text-muted-foreground">{m.settings.danger.body}</p>
           <DeleteAccountDialog />
         </CardContent>
       </Card>

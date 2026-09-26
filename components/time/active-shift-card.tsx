@@ -6,7 +6,9 @@ import { toast } from "sonner";
 
 import { clockOutAction, endBreakAction, startBreakAction } from "@/lib/actions/shifts";
 import { calculateShiftDuration } from "@/lib/calculations";
-import { formatHms, formatTime } from "@/lib/format";
+import { formatHms, formatMinutesAsHours, formatTime } from "@/lib/format";
+import { fmt } from "@/lib/i18n/config";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +39,7 @@ function useNow(intervalMs = 1000) {
 export function ActiveShiftCard({ shift, timezone }: { shift: ActiveShiftData; timezone: string }) {
   const now = useNow();
   const [isPending, startTransition] = useTransition();
+  const { locale, intl, m } = useI18n();
 
   const openBreak = shift.breaks.find((b) => b.ended_at === null);
 
@@ -57,36 +60,41 @@ export function ActiveShiftCard({ shift, timezone }: { shift: ActiveShiftData; t
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
               <span className="relative inline-flex size-2.5 rounded-full bg-success" />
             </span>
-            You&apos;re working{openBreak ? " · on break" : ""}
+            {m.time.working}{openBreak ? ` · ${m.time.onBreak}` : ""}
           </CardTitle>
           {shift.job && <Badge style={{ backgroundColor: shift.job.color, color: "white" }}>{shift.job.name}</Badge>}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-3 gap-4 text-center">
+        {/* The two live counters tick between server render and hydration; that difference is expected. */}
+        <div className="grid grid-cols-3 gap-2 text-center sm:gap-4">
           <div>
-            <p className="text-[26px] leading-tight font-bold tracking-tight tabular-nums">{formatTime(shift.actual_start, timezone)}</p>
-            <p className="text-xs text-muted-foreground">Started</p>
+            <p className="text-[22px] leading-tight font-bold tracking-tight tabular-nums sm:text-[26px]">{formatTime(shift.actual_start, timezone, intl)}</p>
+            <p className="text-xs text-muted-foreground">{m.time.started}</p>
           </div>
           <div>
-            <p className="text-[26px] leading-tight font-bold tracking-tight tabular-nums">{formatHms(elapsedSeconds)}</p>
-            <p className="text-xs text-muted-foreground">Elapsed</p>
+            <p className="text-[22px] leading-tight font-bold tracking-tight tabular-nums sm:text-[26px]" suppressHydrationWarning>
+              {formatHms(elapsedSeconds)}
+            </p>
+            <p className="text-xs text-muted-foreground">{m.time.elapsed}</p>
           </div>
           <div>
-            <p className="text-[26px] leading-tight font-bold tracking-tight tabular-nums">{formatHms(paidMinutes * 60)}</p>
-            <p className="text-xs text-muted-foreground">Paid</p>
+            <p className="text-[22px] leading-tight font-bold tracking-tight tabular-nums sm:text-[26px]" suppressHydrationWarning>
+              {formatHms(paidMinutes * 60)}
+            </p>
+            <p className="text-xs text-muted-foreground">{m.time.paid}</p>
           </div>
         </div>
         {grossMinutes !== paidMinutes && (
           <p className="text-center text-xs text-muted-foreground">
-            {Math.round(grossMinutes - paidMinutes)}m unpaid break so far
+            {fmt(m.time.unpaidBreakSoFar, { duration: formatMinutesAsHours(grossMinutes - paidMinutes, locale) })}
           </p>
         )}
         <div className="flex gap-2">
           {openBreak ? (
             <Button
               variant="outline"
-              className="flex-1"
+              className="h-auto min-h-11 min-w-0 flex-1 py-2 leading-tight whitespace-normal"
               disabled={isPending}
               onClick={() =>
                 startTransition(async () => {
@@ -95,12 +103,12 @@ export function ActiveShiftCard({ shift, timezone }: { shift: ActiveShiftData; t
                 })
               }
             >
-              <Coffee /> End break
+              <Coffee /> {m.time.endBreak}
             </Button>
           ) : (
             <Button
               variant="outline"
-              className="flex-1"
+              className="h-auto min-h-11 min-w-0 flex-1 py-2 leading-tight whitespace-normal"
               disabled={isPending}
               onClick={() =>
                 startTransition(async () => {
@@ -109,22 +117,22 @@ export function ActiveShiftCard({ shift, timezone }: { shift: ActiveShiftData; t
                 })
               }
             >
-              <Coffee /> Take break
+              <Coffee /> {m.time.takeBreak}
             </Button>
           )}
           <Button
             variant="destructive"
-            className="flex-1"
+            className="h-auto min-h-11 min-w-0 flex-1 py-2 leading-tight whitespace-normal"
             disabled={isPending}
             onClick={() =>
               startTransition(async () => {
                 const result = await clockOutAction(shift.id);
                 if (result.error) toast.error(result.error);
-                else toast.success("Clocked out.");
+                else toast.success(m.time.clockedOut);
               })
             }
           >
-            <Square /> Clock out
+            <Square /> {m.time.clockOut}
           </Button>
         </div>
       </CardContent>

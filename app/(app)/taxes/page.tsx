@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireUserContext } from "@/lib/data/context";
+import { getI18n } from "@/lib/i18n/server";
 import { getAnnualIncomeEstimate, getPayPeriodStatements, getUpcomingPaydays } from "@/lib/data/tax";
 import type { JurisdictionSelection } from "@/lib/calculations/tax";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { PayStatementCard } from "@/components/taxes/pay-statement-card";
 import { TaxBreakdownCard } from "@/components/taxes/tax-breakdown-card";
 
 export default async function TaxesPage() {
-  const ctx = await requireUserContext();
+  const [ctx, { m }] = await Promise.all([requireUserContext(), getI18n()]);
   if (!ctx) return null;
 
   const supabase = await createClient();
@@ -34,13 +35,11 @@ export default async function TaxesPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">Pay &amp; taxes</h1>
-        <p className="text-sm text-muted-foreground">
-          Track upcoming paydays and see an estimate of what&apos;s withheld from your pay.
-        </p>
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight md:text-3xl">{m.taxes.title}</h1>
+        <p className="text-sm text-muted-foreground">{m.taxes.subtitle}</p>
       </div>
 
-      <PaydayCard paydays={paydays} />
+      <PaydayCard paydays={paydays} timezone={ctx.timezone} />
 
       <PayStatementCard statements={statements} jurisdiction={jurisdiction} timezone={ctx.timezone} currency={ctx.currency} />
 
@@ -56,12 +55,10 @@ export default async function TaxesPage() {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Estimated tax withholding</CardTitle>
+            <CardTitle className="text-base">{m.taxes.withholdingTitle}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Set your tax jurisdiction above to see an estimate of your income tax and payroll deductions.
-            </p>
+            <p className="text-sm text-muted-foreground">{m.taxes.setJurisdictionAbove}</p>
           </CardContent>
         </Card>
       )}

@@ -1,7 +1,9 @@
 import { z } from "zod";
 
+import { v } from "@/lib/i18n/validation";
+
 export const jobSchema = z.object({
-  name: z.string().trim().min(1, "Job name is required.").max(200),
+  name: z.string().trim().min(1, v("jobNameRequired")).max(200),
   companyName: z.string().trim().max(200).optional().or(z.literal("")),
   jobTitle: z.string().trim().max(200).optional().or(z.literal("")),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
@@ -10,7 +12,7 @@ export const jobSchema = z.object({
   overtimeThresholdHours: z.coerce.number().min(0).max(168).optional(),
   startDate: z.string().optional().or(z.literal("")),
   endDate: z.string().optional().or(z.literal("")),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Pick a valid color."),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, v("colorInvalid")),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
   payFrequency: z.enum(["weekly", "biweekly", "semi_monthly", "monthly"]).optional().or(z.literal("")),
   payAnchorDate: z.string().optional().or(z.literal("")),

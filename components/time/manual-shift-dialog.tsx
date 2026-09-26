@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 
 import { createManualShiftAction, type ActionResult } from "@/lib/actions/shifts";
 import { useAutoOpen } from "@/hooks/use-auto-open";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,7 +19,8 @@ import { ShiftFormFields } from "./shift-form-fields";
 
 const initialState: ActionResult = {};
 
-export function ManualShiftDialog({ jobs }: { jobs: { id: string; name: string }[] }) {
+export function ManualShiftDialog({ jobs, timezone }: { jobs: { id: string; name: string }[]; timezone: string }) {
+  const { m } = useI18n();
   const [open, setOpen] = useAutoOpen("shift");
   const [state, formAction, pending] = useActionState(createManualShiftAction, initialState);
 
@@ -33,21 +35,21 @@ export function ManualShiftDialog({ jobs }: { jobs: { id: string; name: string }
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <Plus /> Add shift manually
+          <Plus /> {m.time.addShiftManually}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form action={formAction}>
           <DialogHeader>
-            <DialogTitle>Add a shift</DialogTitle>
+            <DialogTitle>{m.time.addShiftTitle}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <ShiftFormFields jobs={jobs} />
+            <ShiftFormFields jobs={jobs} timezone={timezone} />
           </div>
           {state.error && <p className="mb-2 text-sm text-destructive">{state.error}</p>}
           <DialogFooter>
             <Button type="submit" disabled={pending || jobs.length === 0}>
-              {pending ? "Saving..." : "Save shift"}
+              {pending ? m.common.saving : m.time.saveShift}
             </Button>
           </DialogFooter>
         </form>

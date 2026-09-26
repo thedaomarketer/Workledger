@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 
 import { createJobAction, type ActionResult } from "@/lib/actions/jobs";
 import { useAutoOpen } from "@/hooks/use-auto-open";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,6 +21,7 @@ const initialState: ActionResult = {};
 
 export function CreateJobDialog() {
   const [open, setOpen] = useAutoOpen("1");
+  const { m } = useI18n();
   const [state, formAction, pending] = useActionState(createJobAction, initialState);
 
   useEffect(() => {
@@ -33,13 +35,13 @@ export function CreateJobDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus /> Add job
+          <Plus /> {m.jobs.addJob}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form action={formAction}>
           <DialogHeader>
-            <DialogTitle>Add a job</DialogTitle>
+            <DialogTitle>{m.jobs.addJobTitle}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <JobFormFields />
@@ -47,7 +49,7 @@ export function CreateJobDialog() {
           {state.error && <p className="mb-2 text-sm text-destructive">{state.error}</p>}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving..." : "Save job"}
+              {pending ? m.common.saving : m.jobs.saveJob}
             </Button>
           </DialogFooter>
         </form>

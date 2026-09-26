@@ -4,25 +4,24 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireUserContext } from "@/lib/data/context";
 import { runAssistantTurn } from "@/lib/ai/chat";
+import { getI18n } from "@/lib/i18n/server";
+import { v, validationMessage } from "@/lib/i18n/validation";
 
 const bodySchema = z.object({
   conversationId: z.uuid().optional(),
-  message: z.string().trim().min(1, "Enter a message.").max(2000),
+  message: z.string().trim().min(1, v("messageRequired")).max(2000),
 });
 
 export async function POST(request: Request) {
-  const ctx = await requireUserContext();
+  const [ctx, { locale, m }] = await Promise.all([requireUserContext(), getI18n()]);
   if (!ctx) {
-    return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
+    return NextResponse.json({ error: m.errors.mustSignIn }, { status: 401 });
   }
 
   const json = await request.json().catch(() => null);
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Invalid request." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: validationMessage(m, parsed.error) }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -42,7 +41,7 @@ export async function POST(request: Request) {
       .eq("user_id", ctx.userId)
       .maybeSingle();
     if (!existing) {
-      return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
+      return NextResponse.json({ error: m.errors.conversationNotFound }, { status: 404 });
     }
   } else {
     const { data: conversation, error } = await supabase
@@ -51,7 +50,7 @@ export async function POST(request: Request) {
       .select("id")
       .single();
     if (error || !conversation) {
-      return NextResponse.json({ error: "Couldn't start a new conversation." }, { status: 500 });
+      return NextResponse.json({ error: m.errors.conversationStartFailed }, { status: 500 });
     }
     conversationId = conversation.id;
   }
@@ -64,8 +63,8 @@ export async function POST(request: Request) {
     .limit(40);
 
   const history = (historyRows ?? [])
-    .filter((m): m is { role: "user" | "assistant"; content: string } => m.role === "user" || m.role === "assistant")
-    .map((m) => ({ role: m.role, content: m.content }));
+    .filter((row): row is { role: "user" | "assistant"; content: string } => row.role === "user" || row.role === "assistant")
+    .map((row) => ({ role: row.role, content: row.content }));
 
   let reply: string;
   try {
@@ -78,16 +77,14 @@ export async function POST(request: Request) {
         currency: ctx.currency,
       },
       fullName: profile?.full_name ?? null,
+      locale,
       jobs: jobs ?? [],
       history,
       userMessage: parsed.data.message,
     });
   } catch (error) {
     console.error("Assistant turn failed", error);
-    return NextResponse.json(
-      { error: "The assistant couldn't respond right now. Please try again in a moment." },
-      { status: 502 }
-    );
+    return NextResponse.json({ error: m.errors.assistantUnavailable }, { status: 502 });
   }
 
   await supabase.from("ai_messages").insert([

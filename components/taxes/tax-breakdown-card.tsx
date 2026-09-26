@@ -3,8 +3,11 @@
 import { useMemo, useState } from "react";
 import { Receipt } from "lucide-react";
 
-import { estimateTax, type JurisdictionSelection } from "@/lib/calculations/tax";
+import { estimateTax, type JurisdictionSelection, type TaxLine } from "@/lib/calculations/tax";
 import { centsToDollars, dollarsToCents, formatCents } from "@/lib/calculations/money";
+import { fmt } from "@/lib/i18n/config";
+import { useI18n } from "@/lib/i18n/client";
+import type { Messages } from "@/lib/i18n/messages/en";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +24,8 @@ export function TaxBreakdownCard({
   hasIncomeData: boolean;
   currency: string;
 }) {
+  const { intl, m } = useI18n();
+  const money = (cents: number) => formatCents(cents, currency, intl);
   const [annualIncomeDollars, setAnnualIncomeDollars] = useState(() =>
     centsToDollars(estimatedAnnualIncomeCents).toFixed(0)
   );
@@ -34,12 +39,12 @@ export function TaxBreakdownCard({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Receipt className="size-4" /> Estimated tax withholding
+          <Receipt className="size-4" /> {m.taxes.withholdingTitle}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="annualIncome">Estimated annual gross income</Label>
+          <Label htmlFor="annualIncome">{m.taxes.annualIncome}</Label>
           <Input
             id="annualIncome"
             type="number"
@@ -49,25 +54,17 @@ export function TaxBreakdownCard({
             onChange={(e) => setAnnualIncomeDollars(e.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            {hasIncomeData
-              ? "Pre-filled from your recorded shifts over the last 8 weeks, annualized. Adjust it to match what you actually expect to earn this year."
-              : "We don't have enough recorded shift history yet to estimate this automatically. Enter what you expect to earn this year."}
+            {hasIncomeData ? m.taxes.prefilled : m.taxes.notEnoughHistory}
           </p>
         </div>
 
         <Separator />
 
         <div className="space-y-1.5 text-sm">
-          {result.incomeTaxLines.map((line) => (
-            <div key={line.label} className="flex justify-between">
-              <span className="text-muted-foreground">{line.label}</span>
-              <span>{formatCents(line.amountCents, currency)}</span>
-            </div>
-          ))}
-          {result.payrollDeductionLines.map((line) => (
-            <div key={line.label} className="flex justify-between">
-              <span className="text-muted-foreground">{line.label}</span>
-              <span>{formatCents(line.amountCents, currency)}</span>
+          {[...result.incomeTaxLines, ...result.payrollDeductionLines].map((line) => (
+            <div key={line.kind} className="flex justify-between">
+              <span className="text-muted-foreground">{taxLineLabel(line, m)}</span>
+              <span>{money(line.amountCents)}</span>
             </div>
           ))}
         </div>
@@ -76,25 +73,31 @@ export function TaxBreakdownCard({
 
         <div className="space-y-1.5">
           <div className="flex justify-between text-sm font-medium">
-            <span>Total estimated deductions</span>
-            <span>{formatCents(result.totalDeductionsCents, currency)}</span>
+            <span>{m.taxes.totalDeductions}</span>
+            <span>{money(result.totalDeductionsCents)}</span>
           </div>
           <div className="flex justify-between text-sm font-medium">
-            <span>Estimated net income</span>
-            <span>{formatCents(result.netAnnualIncomeCents, currency)}</span>
+            <span>{m.taxes.netIncome}</span>
+            <span>{money(result.netAnnualIncomeCents)}</span>
           </div>
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Effective rate</span>
-            <span>{(result.effectiveRate * 100).toFixed(1)}%</span>
+            <span>{m.taxes.effectiveRate}</span>
+            <span>
+              {result.effectiveRate.toLocaleString(intl, {
+                style: "percent",
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+              })}
+            </span>
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          This is a simplified {result.taxYear} estimate for a single filer taking the standard deduction. It
-          does not account for other income, credits, or deductions, and is not a substitute for a pay stub or
-          tax software.
-        </p>
+        <p className="text-xs text-muted-foreground">{fmt(m.taxes.disclaimer, { year: result.taxYear })}</p>
       </CardContent>
     </Card>
   );
+}
+
+function taxLineLabel(line: TaxLine, m: Messages): string {
+  return fmt(m.taxes.lines[line.kind], { region: line.place ?? "" });
 }

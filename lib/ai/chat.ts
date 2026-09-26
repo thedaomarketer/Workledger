@@ -3,12 +3,14 @@ import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
 
 import { ASSISTANT_MODEL, getAnthropicClient } from "./client";
+import type { Locale } from "@/lib/i18n/config";
 import { buildSystemPrompt } from "./system-prompt";
 import { buildToolHandlers, buildTools, type ToolContext } from "./tools";
 
 export interface RunChatParams {
   toolContext: ToolContext;
   fullName: string | null;
+  locale: Locale;
   jobs: { id: string; name: string }[];
   history: { role: "user" | "assistant"; content: string }[];
   userMessage: string;
@@ -26,6 +28,7 @@ export async function runAssistantTurn(params: RunChatParams): Promise<string> {
     timezone: params.toolContext.timezone,
     currency: params.toolContext.currency,
     now: new Date(),
+    locale: params.locale,
     jobs: params.jobs,
   });
 

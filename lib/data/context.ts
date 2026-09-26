@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { safeTimeZone } from "@/lib/timezone";
 
 export interface UserContext {
   userId: string;
@@ -24,7 +25,8 @@ export async function requireUserContext(): Promise<UserContext | null> {
 
   return {
     userId: user.id,
-    timezone: profile?.timezone || "UTC",
+    // Belt and braces: the DB rejects invalid zones, but never let one crash every page.
+    timezone: safeTimeZone(profile?.timezone),
     currency: profile?.currency || "USD",
     weekStartsOn: settings?.week_starts_on ?? 1,
   };

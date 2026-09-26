@@ -1,13 +1,26 @@
 import { z } from "zod";
 
+import { LOCALES } from "@/lib/i18n/config";
+import { v } from "@/lib/i18n/validation";
+import { isValidTimeZone } from "@/lib/timezone";
+
 export const profileSchema = z.object({
-  fullName: z.string().trim().min(1, "Enter your name.").max(200),
+  fullName: z.string().trim().min(1, v("nameRequired")).max(200),
   phone: z.string().trim().max(50).optional().or(z.literal("")),
   country: z.string().trim().max(100).optional().or(z.literal("")),
-  timezone: z.string().min(1, "Choose a time zone."),
-  currency: z.string().length(3, "Use a 3-letter currency code."),
-  dateFormat: z.string().min(1),
   defaultHourlyRate: z.coerce.number().min(0).max(100000).optional(),
+});
+
+export const timeZoneSchema = z.string().refine(isValidTimeZone, v("timezoneInvalid"));
+
+export const regionSchema = z.object({
+  locale: z.enum(LOCALES, v("localeInvalid")),
+  timezone: timeZoneSchema,
+  currency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{3}$/, v("currencyInvalid")),
 });
 
 export const preferencesSchema = z.object({
@@ -25,6 +38,6 @@ export const taxSettingsSchema = z
     taxCity: z.string().trim().max(30).optional().or(z.literal("")),
   })
   .refine((data) => !data.taxCountry || !!data.taxRegion, {
-    message: "Choose a province or state.",
+    message: v("chooseRegion"),
     path: ["taxRegion"],
   });

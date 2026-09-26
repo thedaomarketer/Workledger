@@ -24,17 +24,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ENTRY_TYPE_OPTIONS } from "./entry-type-config";
+import { instantToLocalInputs } from "@/lib/calculations/local-time";
+import { fmt } from "@/lib/i18n/config";
+import { useI18n } from "@/lib/i18n/client";
+import { timeZoneLabel } from "@/lib/timezone";
+import { ENTRY_TYPES } from "./entry-type-config";
 
 const initialState: ActionResult = {};
 
-function nowLocal(): string {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 16);
+/** "Now" as a datetime-local value in the user's saved time zone (not the device's). */
+function nowInZone(timezone: string): string {
+  const { date, time } = instantToLocalInputs(new Date(), timezone);
+  return `${date}T${time}`;
 }
 
-export function CreateEntryDialog({ jobs }: { jobs: { id: string; name: string }[] }) {
+export function CreateEntryDialog({ jobs, timezone }: { jobs: { id: string; name: string }[]; timezone: string }) {
+  const { m } = useI18n();
   const [open, setOpen] = useAutoOpen("1");
   const [state, formAction, pending] = useActionState(createJournalEntryAction, initialState);
   const id = useId();
@@ -50,24 +55,24 @@ export function CreateEntryDialog({ jobs }: { jobs: { id: string; name: string }
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus /> Add entry
+          <Plus /> {m.journal.addEntry}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form action={formAction} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>Add a journal entry</DialogTitle>
+            <DialogTitle>{m.journal.addEntryTitle}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor={`${id}-entryType`}>Type</Label>
+            <Label htmlFor={`${id}-entryType`}>{m.journal.type}</Label>
             <Select name="entryType" defaultValue="general">
               <SelectTrigger className="w-full" id={`${id}-entryType`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ENTRY_TYPE_OPTIONS.map(([value, config]) => (
+                {ENTRY_TYPES.map((value) => (
                   <SelectItem key={value} value={value}>
-                    {config.label}
+                    {m.journal.types[value]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -75,10 +80,10 @@ export function CreateEntryDialog({ jobs }: { jobs: { id: string; name: string }
           </div>
           {jobs.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor={`${id}-jobId`}>Job (optional)</Label>
+              <Label htmlFor={`${id}-jobId`}>{m.common.jobOptional}</Label>
               <Select name="jobId">
                 <SelectTrigger className="w-full" id={`${id}-jobId`}>
-                  <SelectValue placeholder="None" />
+                  <SelectValue placeholder={m.common.none} />
                 </SelectTrigger>
                 <SelectContent>
                   {jobs.map((job) => (
@@ -91,21 +96,31 @@ export function CreateEntryDialog({ jobs }: { jobs: { id: string; name: string }
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor={`${id}-eventAt`}>When</Label>
-            <Input id={`${id}-eventAt`} name="eventAt" type="datetime-local" defaultValue={nowLocal()} required />
+            <Label htmlFor={`${id}-eventAt`}>{m.journal.when}</Label>
+            <Input
+              id={`${id}-eventAt`}
+              name="eventAt"
+              type="datetime-local"
+              defaultValue={nowInZone(timezone)}
+              aria-describedby={`${id}-eventAt-hint`}
+              required
+            />
+            <p id={`${id}-eventAt-hint`} className="text-xs text-muted-foreground">
+              {fmt(m.time.timesInZone, { zone: timeZoneLabel(timezone) })}
+            </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${id}-title`}>Title</Label>
-            <Input id={`${id}-title`} name="title" placeholder="Short summary" />
+            <Label htmlFor={`${id}-title`}>{m.journal.entryTitle}</Label>
+            <Input id={`${id}-title`} name="title" placeholder={m.journal.entryTitlePlaceholder} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${id}-content`}>Details</Label>
+            <Label htmlFor={`${id}-content`}>{m.journal.details}</Label>
             <Textarea id={`${id}-content`} name="content" rows={4} />
           </div>
           {state.error && <p className="text-sm text-destructive">{state.error}</p>}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving..." : "Save entry"}
+              {pending ? m.common.saving : m.journal.saveEntry}
             </Button>
           </DialogFooter>
         </form>

@@ -4,15 +4,13 @@ import type { PayPeriodStatement } from "@/lib/data/tax";
 import type { JurisdictionSelection } from "@/lib/calculations/tax";
 import { estimateTaxForPeriod } from "@/lib/calculations/tax";
 import { formatCents } from "@/lib/calculations/money";
-import { formatMinutesAsHours } from "@/lib/format";
+import { formatMinutesAsHours, formatShortDate } from "@/lib/format";
+import { fmt } from "@/lib/i18n/config";
+import { getI18n } from "@/lib/i18n/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-function formatPeriodDate(date: Date, timezone: string): string {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: timezone }).format(date);
-}
-
-export function PayStatementCard({
+export async function PayStatementCard({
   statements,
   jurisdiction,
   timezone,
@@ -23,18 +21,19 @@ export function PayStatementCard({
   timezone: string;
   currency: string;
 }) {
+  const { locale, intl, m } = await getI18n();
+  const periodDate = (date: Date) => formatShortDate(date, timezone, intl);
+  const money = (cents: number) => formatCents(cents, currency, intl);
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <FileText className="size-4" /> Current pay period
+          <FileText className="size-4" /> {m.taxes.currentPayPeriod}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {statements.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Add a pay frequency and a known pay date to a job to see a pay-period statement here.
-          </p>
+          <p className="text-sm text-muted-foreground">{m.taxes.noStatements}</p>
         ) : (
           <div className="space-y-6">
             {statements.map((statement, i) => {
@@ -53,43 +52,43 @@ export function PayStatementCard({
                     </div>
                     <span className="shrink-0 text-xs text-muted-foreground">
                       {isEmpty
-                        ? `Starts ${formatPeriodDate(statement.periodStart, timezone)}`
-                        : `${formatPeriodDate(statement.periodStart, timezone)} – ${formatPeriodDate(statement.periodEnd, timezone)}`}
+                        ? fmt(m.taxes.starts, { date: periodDate(statement.periodStart) })
+                        : `${periodDate(statement.periodStart)} – ${periodDate(statement.periodEnd)}`}
                     </span>
                   </div>
 
                   {isEmpty ? (
-                    <p className="text-sm text-muted-foreground">This job&apos;s first pay period hasn&apos;t started yet.</p>
+                    <p className="text-sm text-muted-foreground">{m.taxes.notStarted}</p>
                   ) : (
                     <div className="space-y-1.5 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Hours worked</span>
-                        <span>{formatMinutesAsHours(statement.paidMinutes)}</span>
+                        <span className="text-muted-foreground">{m.taxes.hoursWorked}</span>
+                        <span>{formatMinutesAsHours(statement.paidMinutes, locale)}</span>
                       </div>
                       {statement.overtimeMinutes > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Overtime</span>
-                          <span>{formatMinutesAsHours(statement.overtimeMinutes)}</span>
+                          <span className="text-muted-foreground">{m.common.overtime}</span>
+                          <span>{formatMinutesAsHours(statement.overtimeMinutes, locale)}</span>
                         </div>
                       )}
                       <div className="flex justify-between font-medium">
-                        <span>Gross pay</span>
-                        <span>{formatCents(statement.grossEarningsCents, currency)}</span>
+                        <span>{m.taxes.grossPay}</span>
+                        <span>{money(statement.grossEarningsCents)}</span>
                       </div>
                       {estimate ? (
                         <>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Est. deductions</span>
-                            <span>-{formatCents(estimate.periodDeductionsCents, currency)}</span>
+                            <span className="text-muted-foreground">{m.taxes.estDeductions}</span>
+                            <span>−{money(estimate.periodDeductionsCents)}</span>
                           </div>
                           <div className="flex justify-between font-medium">
-                            <span>Est. net pay</span>
-                            <span>{formatCents(estimate.periodNetCents, currency)}</span>
+                            <span>{m.taxes.estNetPay}</span>
+                            <span>{money(estimate.periodNetCents)}</span>
                           </div>
                         </>
                       ) : (
                         <p className="pt-1 text-xs text-muted-foreground">
-                          Set your tax jurisdiction below to see estimated deductions and net pay.
+                          {m.taxes.setJurisdictionForNet}
                         </p>
                       )}
                     </div>

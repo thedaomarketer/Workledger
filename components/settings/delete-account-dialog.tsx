@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { deleteAccountAction } from "@/lib/actions/settings";
+import { fmt } from "@/lib/i18n/config";
+import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,36 +20,40 @@ import {
 
 export function DeleteAccountDialog() {
   const [open, setOpen] = useState(false);
+  const { m } = useI18n();
+  const t = m.settings.danger;
   const [confirmText, setConfirmText] = useState("");
   const [isPending, startTransition] = useTransition();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="destructive">Delete account</Button>
+        <Button variant="destructive">{t.deleteAccount}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete your account</DialogTitle>
-          <DialogDescription>
-            This permanently deletes your profile, jobs, shifts, journal entries, expenses, mileage, and
-            attachments, and signs you out everywhere. This cannot be undone. Export your data first if you
-            want to keep a copy.
-          </DialogDescription>
+          <DialogTitle>{t.dialogTitle}</DialogTitle>
+          <DialogDescription>{t.dialogBody}</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="confirm-delete">
-            Type DELETE to confirm
+            {fmt(t.typeToConfirm, { word: t.confirmWord })}
           </label>
-          <Input id="confirm-delete" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} />
+          <Input
+            id="confirm-delete"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            autoCapitalize="characters"
+            autoComplete="off"
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
+            {m.common.cancel}
           </Button>
           <Button
             variant="destructive"
-            disabled={confirmText !== "DELETE" || isPending}
+            disabled={confirmText.trim() !== t.confirmWord || isPending}
             onClick={() =>
               startTransition(async () => {
                 const result = await deleteAccountAction();
@@ -55,7 +61,7 @@ export function DeleteAccountDialog() {
               })
             }
           >
-            Permanently delete account
+            {t.permanentlyDelete}
           </Button>
         </DialogFooter>
       </DialogContent>

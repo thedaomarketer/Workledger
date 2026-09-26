@@ -1,49 +1,36 @@
 import { CalendarClock } from "lucide-react";
 
 import type { JobPayday } from "@/lib/data/tax";
+import { daysUntil, formatDaysAway, formatLongDate } from "@/lib/format";
+import { getI18n } from "@/lib/i18n/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-function daysUntil(date: Date): number {
-  const now = new Date();
-  return Math.ceil((date.getTime() - now.getTime()) / 86_400_000);
-}
-
-function formatPayday(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric" }).format(date);
-}
-
-export function PaydayCard({ paydays }: { paydays: JobPayday[] }) {
+export async function PaydayCard({ paydays, timezone }: { paydays: JobPayday[]; timezone: string }) {
+  const { intl, m } = await getI18n();
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <CalendarClock className="size-4" /> Upcoming paydays
+          <CalendarClock className="size-4" /> {m.taxes.upcomingPaydays}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {paydays.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Add a pay frequency and a known pay date to a job to see your next payday here.
-          </p>
+          <p className="text-sm text-muted-foreground">{m.taxes.noPaydays}</p>
         ) : (
           <ul className="space-y-3">
-            {paydays.map((payday) => {
-              const days = daysUntil(payday.nextPayday);
-              return (
-                <li key={payday.jobId} className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: payday.color }} />
-                    <span className="truncate text-sm font-medium">{payday.jobName}</span>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-sm font-medium">{formatPayday(payday.nextPayday)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {days <= 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
+            {paydays.map((payday) => (
+              <li key={payday.jobId} className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: payday.color }} />
+                  <span className="truncate text-sm font-medium">{payday.jobName}</span>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-medium">{formatLongDate(payday.nextPayday, timezone, intl)}</p>
+                  <p className="text-xs text-muted-foreground">{formatDaysAway(daysUntil(payday.nextPayday), m)}</p>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </CardContent>

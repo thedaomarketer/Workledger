@@ -46,7 +46,27 @@ visually overshoot the topmost gridline.
 
 `tests/unit/ai/period.test.ts` — the AI assistant's natural-language period
 resolver ("today", "last week", etc.) against the same day/week/month
-bounds helpers used everywhere else.
+bounds helpers used everywhere else, plus custom ranges anchored to local
+midnight in a UTC+14 zone and across a 23-hour DST day.
+
+`tests/unit/calculations/local-time.test.ts` — wall-clock → instant
+conversion in the user's zone: a Toronto 09:00 start, an overnight shift
+rolling to the next calendar day, an overnight shift across spring-forward
+(7 real hours), explicit end dates, and malformed input.
+
+`tests/unit/timezone.test.ts` — zone validation, UTC offsets (including
+DST), modern names for retired ICU aliases, `Accept-Language` matching,
+and placeholder filling.
+
+`tests/unit/i18n.test.ts` — French and Spanish have exactly the English
+entries, the same `{placeholders}` in every string, no empty strings, and
+are actually translated; validation keys translate per language.
+
+`tests/unit/format.test.ts` — locale-aware hour/minute formatting, calendar
+dates that never shift through a zone, instants rendered in the user's
+zone and language, and payday countdown labels.
+
+`tests/unit/safe-redirect.test.ts` — the open-redirect guard.
 
 Run: `npm test` (or `npm run test:watch`).
 

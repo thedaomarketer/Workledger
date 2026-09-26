@@ -1,6 +1,8 @@
 import { CheckCircle2, MessageSquare } from "lucide-react";
 
 import { formatDateTime } from "@/lib/format";
+import { getI18n } from "@/lib/i18n/server";
+import { journalTypeLabel } from "@/components/journal/entry-type-config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface JournalEntry {
@@ -23,7 +25,7 @@ type ActivityItem =
   | { kind: "journal"; at: string; entry: JournalEntry }
   | { kind: "shift"; at: string; shift: CompletedShift };
 
-export function RecentActivity({
+export async function RecentActivity({
   journalEntries,
   completedShifts,
   timezone,
@@ -32,6 +34,7 @@ export function RecentActivity({
   completedShifts: CompletedShift[];
   timezone: string;
 }) {
+  const { intl, m } = await getI18n();
   const items: ActivityItem[] = [
     ...journalEntries.map((entry): ActivityItem => ({ kind: "journal", at: entry.event_at, entry })),
     ...completedShifts
@@ -44,11 +47,11 @@ export function RecentActivity({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Recent activity</CardTitle>
+        <CardTitle className="text-base">{m.dashboard.recentActivity}</CardTitle>
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Nothing recorded yet.</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">{m.dashboard.nothingRecorded}</p>
         ) : (
           <ul className="space-y-4">
             {items.map((item) => (
@@ -61,10 +64,10 @@ export function RecentActivity({
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">
                     {item.kind === "journal"
-                      ? item.entry.title || journalTypeLabel(item.entry.entry_type)
-                      : `Completed a shift${item.shift.job ? ` · ${item.shift.job.name}` : ""}`}
+                      ? item.entry.title || journalTypeLabel(item.entry.entry_type, m)
+                      : `${m.dashboard.completedShift}${item.shift.job ? ` · ${item.shift.job.name}` : ""}`}
                   </p>
-                  <p className="text-xs text-muted-foreground">{formatDateTime(item.at, timezone)}</p>
+                  <p className="text-xs text-muted-foreground">{formatDateTime(item.at, timezone, intl)}</p>
                 </div>
               </li>
             ))}
@@ -75,6 +78,3 @@ export function RecentActivity({
   );
 }
 
-function journalTypeLabel(type: string): string {
-  return type.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-}

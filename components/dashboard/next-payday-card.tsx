@@ -2,20 +2,13 @@ import Link from "next/link";
 import { CalendarClock } from "lucide-react";
 
 import type { JobPayday } from "@/lib/data/tax";
+import { daysUntil, formatDaysAway, formatLongDate } from "@/lib/format";
+import { fmt } from "@/lib/i18n/config";
+import { getI18n } from "@/lib/i18n/server";
 import { Card, CardContent } from "@/components/ui/card";
 
-function daysUntil(date: Date): number {
-  const now = new Date();
-  return Math.ceil((date.getTime() - now.getTime()) / 86_400_000);
-}
-
-function formatPayday(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric" }).format(date);
-}
-
-export function NextPaydayCard({ payday }: { payday: JobPayday }) {
-  const days = daysUntil(payday.nextPayday);
-  const daysLabel = days <= 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
+export async function NextPaydayCard({ payday, timezone }: { payday: JobPayday; timezone: string }) {
+  const { intl, m } = await getI18n();
 
   return (
     <Link href="/taxes">
@@ -26,9 +19,12 @@ export function NextPaydayCard({ payday }: { payday: JobPayday }) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">
-              Next payday: {formatPayday(payday.nextPayday)} · {payday.jobName}
+              {fmt(m.dashboard.nextPayday, {
+                date: formatLongDate(payday.nextPayday, timezone, intl),
+                job: payday.jobName,
+              })}
             </p>
-            <p className="text-xs text-muted-foreground">{daysLabel}</p>
+            <p className="text-xs text-muted-foreground">{formatDaysAway(daysUntil(payday.nextPayday), m)}</p>
           </div>
         </CardContent>
       </Card>

@@ -44,6 +44,24 @@ initial migrations, both fixed in `00000000000015_harden_functions.sql`:
 
 Re-run `get_advisors` (security and performance) after any schema change.
 
+## Redirect targets
+
+Post-sign-in (`redirectTo`) and email-confirmation (`next`) redirect
+targets come from URLs an attacker can craft, and were previously passed
+straight to `redirect()` -- an open redirect. Both now go through
+`lib/safe-redirect.ts#safeRedirectPath`, which only allows same-site,
+root-relative paths (rejecting `//host`, `/\host`, absolute URLs, and
+control characters). Covered by `tests/unit/safe-redirect.test.ts`.
+
+## Locale and time zone input
+
+Time zone and language are validated server-side with Zod on every write
+(settings, the one-tap time zone prompt, signup), and again by database
+constraints. Signup metadata is client-controlled (the anon key is
+public), so `handle_new_user()` validates it itself and falls back to
+`UTC`/`en` rather than trusting it -- this was tested with a malformed zone
+against the live database.
+
 ## Attachments
 
 The `attachments` Storage bucket is private (`public = false`). Files are
